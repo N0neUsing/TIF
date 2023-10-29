@@ -33,7 +33,7 @@ class ProductoFormulario(forms.ModelForm):
         )
     class Meta:
         model = Producto
-        fields = ['descripcion','precio','categoria','tiene_iva']
+        fields = ['descripcion','precio','tipo','tiene_iva']
         labels = {
         'descripcion': 'Nombre',
         'tiene_iva': 'Incluye IVA?'
@@ -41,7 +41,7 @@ class ProductoFormulario(forms.ModelForm):
         widgets = {
         'descripcion': forms.TextInput(attrs={'placeholder': 'Nombre del producto',
         'id':'descripcion','class':'form-control'} ),
-        'categoria': forms.Select(attrs={'class':'form-control','id':'categoria'}),
+        'tipo': forms.Select(attrs={'class':'form-control','id':'tipo'}),
         'tiene_iva': forms.CheckboxInput(attrs={'class':'checkbox rounded','id':'tiene_iva'}) 
         }
 

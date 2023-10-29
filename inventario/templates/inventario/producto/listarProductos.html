@@ -44,7 +44,7 @@
                                                             <th>Nombre</th>
                                                             <th>Precio</th>
                                                             <th>Disponible</th>
-                                                            <th>Categoria</th>
+                                                            <th>Tipo</th>
                                                             <th>IVA</th>
                                                             <th>Opciones</th>
                                                         </tr>
@@ -57,13 +57,13 @@
                                                             <td>{{ fila.precio }}</td>
                                                             <td>{{ fila.disponible }}</td>
                                                             <td>
-                                                    {% if fila.categoria == '1' %}
+                                                    {% if fila.tipo == '1' %}
                                                             Unidad
-                                                    {% elif fila.categoria == '2' %}
+                                                    {% elif fila.tipo == '2' %}
                                                             Kilo
-                                                    {% elif fila.categoria == '3' %}
+                                                    {% elif fila.tipo == '3' %}
                                                             Litro
-                                                    {% elif fila.categoria == '4' %}
+                                                    {% elif fila.tipo == '4' %}
                                                             Otros
                                                         {%endif%}
 

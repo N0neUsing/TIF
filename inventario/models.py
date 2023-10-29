@@ -43,7 +43,7 @@ class Producto(models.Model):
     descripcion = models.CharField(max_length=40)
     precio = models.DecimalField(max_digits=9,decimal_places=2)
     disponible = models.IntegerField(null=True)
-    categoria = models.CharField(max_length=20,choices=decisiones)
+    tipo = models.CharField(max_length=20,choices=decisiones)
     tiene_iva = models.BooleanField(null=True)
 
     @classmethod
@@ -74,7 +74,10 @@ class Producto(models.Model):
 
             arreglo[indice + extra].append(objeto.id)
             precio_producto = objeto.precio
-            arreglo[indice + extra].append("%d" % (precio_producto) )  
+            if isinstance(precio_producto, str):
+                arreglo[indice + extra].append(precio_producto)
+            else:
+                arreglo[indice + extra].append("%d" % precio_producto)  
 
         return arreglo 
 

@@ -1440,7 +1440,7 @@ function validarTodo(tipo)
 	{
 
 		let nombreProducto = document.getElementById('descripcion')
-		let categoriaProducto = document.getElementById('categoria')
+		let categoriaProducto = document.getElementById('tipo')
 		let precioProducto = document.getElementById('precio')
 
 		if(nombreProducto.value == '')
@@ -1454,7 +1454,7 @@ function validarTodo(tipo)
 		{
 			error = true
 			mensaje += mensaje += "<p class= '" + claseErrores + "'>" +
-			"-Debe elegir alguna categoria. </p>"
+			"-Debe elegir alguna tipo. </p>"
 		}
 
 		if(precioProducto.value == "0" || precioProducto.value == "")

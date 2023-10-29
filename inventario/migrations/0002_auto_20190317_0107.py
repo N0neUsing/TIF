@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
                 ('descripcion', models.CharField(max_length=40)),
                 ('precio', models.DecimalField(decimal_places=2, max_digits=9)),
                 ('disponible', models.IntegerField()),
-                ('categoria', models.CharField(max_length=20)),
+                ('tipo', models.CharField(max_length=20)),
                 ('tiene_iva', models.BooleanField(null=True)),
             ],
         ),

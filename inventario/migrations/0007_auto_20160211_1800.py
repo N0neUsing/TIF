@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterField(
             model_name='producto',
-            name='categoria',
+            name='tipo',
             field=models.CharField(choices=[('1', 'Unidad'), ('2', 'Kilo'), ('3', 'Litro'), ('4', 'Otros')], max_length=20),
         ),
     ]

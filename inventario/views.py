@@ -370,11 +370,11 @@ class AgregarProducto(LoginRequiredMixin, View):
             # Procesa y asigna los datos con form.cleaned_data como se requiere
             descripcion = form.cleaned_data['descripcion']
             precio = form.cleaned_data['precio']
-            categoria = form.cleaned_data['categoria']
+            tipo = form.cleaned_data['tipo']
             tiene_iva = form.cleaned_data['tiene_iva']
             disponible = 0
 
-            prod = Producto(descripcion=descripcion,precio=precio,categoria=categoria,tiene_iva=tiene_iva,disponible=disponible)
+            prod = Producto(descripcion=descripcion,precio=precio,tipo=tipo,tiene_iva=tiene_iva,disponible=disponible)
             prod.save()
             
             form = ProductoFormulario()
@@ -482,13 +482,13 @@ class EditarProducto(LoginRequiredMixin, View):
             # Procesa y asigna los datos con form.cleaned_data como se requiere
             descripcion = form.cleaned_data['descripcion']
             precio = form.cleaned_data['precio']
-            categoria = form.cleaned_data['categoria']
+            tipo = form.cleaned_data['tipo']
             tiene_iva = form.cleaned_data['tiene_iva']
 
             prod = Producto.objects.get(id=p)
             prod.descripcion = descripcion
             prod.precio = precio
-            prod.categoria = categoria
+            prod.tipo = tipo
             prod.tiene_iva = tiene_iva
             prod.save()
             form = ProductoFormulario(instance=prod)
