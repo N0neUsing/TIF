@@ -1,0 +1,70 @@
+{% extends "inventario/comun/base.html" %}
+{% load my_filters %}
+{% block content %}
+<article class="content">
+    <div class="title-block">
+        <h1 class="title">Carrito de Compras</h1>
+    </div>
+    <section class="section">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-block">
+                        <h3 class="title">Productos en el Carrito</h3>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio Unitario</th>
+                                        <th>Subtotal</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in products %}
+                                    <tr>
+                                        <td>{{ item.product.descripcion }}</td>
+                                        <td>
+                                            <form method="post" action="{% url 'inventario:update_cart_item' item.product.id %}">
+                                                {% csrf_token %}
+                                                <input type="number" name="quantity" value="{{ item.quantity }}" min="1">
+                                                <button type="submit">Actualizar</button>
+                                            </form>
+                                        </td>
+                                        <td>{{ item.product.precio }}</td>
+                                        <td>{{ item.product.precio|floatformat:2|multiply:item.quantity }}</td>
+                                        <td>
+                                            <a href="{% url 'inventario:remove_from_cart' item.product.id %}" class="btn btn-danger">Eliminar</a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5">No hay productos en el carrito.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if products %}
+                        <div class="card-footer">
+                            <h4>Total: {{ total }}</h4>
+                            <form id="id-form-checkout" method="post" action="{% url 'inventario:checkout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary">Finalizar Compra</button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</article>
+<script>
+    document.getElementById('id-form-checkout').addEventListener('submit', function() {
+        window.location.reload();
+    });
+    </script>
+{% endblock %}

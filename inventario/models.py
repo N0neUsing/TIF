@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+import datetime
+from django.utils import timezone
+from django.conf import settings
 
 
 # MODELOS
@@ -35,74 +38,105 @@ class Opciones(models.Model):
 
 #---------------------------------------------------------------------------------------
 
- 
-#-------------------------------PRODUCTO------------------------------------------------
-class Producto(models.Model):
-    #id
-    decisiones =  [('1','Unidad'),('2','Kilo'),('3','Litro'),('4','Otros')]
-    descripcion = models.CharField(max_length=40)
-    precio = models.DecimalField(max_digits=9,decimal_places=2)
-    disponible = models.IntegerField(null=True)
-    tipo = models.CharField(max_length=20,choices=decisiones)
-    tiene_iva = models.BooleanField(null=True)
+#-----------------------------------CATEGORIA-------------------------------------------
+class Categoria(models.Model):
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField(null=True, blank=True)
 
-    @classmethod
-    def numeroRegistrados(self):
-        return int(self.objects.all().count() )
-   
-
-    @classmethod
-    def productosRegistrados(self):
-        objetos = self.objects.all().order_by('descripcion')
-        return objetos
-
-
-    @classmethod
-    def preciosProductos(self):
-        objetos = self.objects.all().order_by('id')
-        arreglo = []
-        etiqueta = True
-        extra = 1
-
-        for indice,objeto in enumerate(objetos):
-            arreglo.append([])
-            if etiqueta:
-                arreglo[indice].append(0)
-                arreglo[indice].append("------")
-                etiqueta = False
-                arreglo.append([])
-
-            arreglo[indice + extra].append(objeto.id)
-            precio_producto = objeto.precio
-            if isinstance(precio_producto, str):
-                arreglo[indice + extra].append(precio_producto)
-            else:
-                arreglo[indice + extra].append("%d" % precio_producto)  
-
-        return arreglo 
-
-    @classmethod
-    def productosDisponibles(self):
-        objetos = self.objects.all().order_by('id')
-        arreglo = []
-        etiqueta = True
-        extra = 1
-
-        for indice,objeto in enumerate(objetos):
-            arreglo.append([])
-            if etiqueta:
-                arreglo[indice].append(0)
-                arreglo[indice].append("------")
-                etiqueta = False
-                arreglo.append([])
-
-            arreglo[indice + extra].append(objeto.id)
-            productos_disponibles = objeto.disponible
-            arreglo[indice + extra].append("%d" % (productos_disponibles) )  
-
-        return arreglo 
+    def __str__(self):
+        return self.nombre
 #---------------------------------------------------------------------------------------
 
+    #-------------------------------PRODUCTO------------------------------------------------
+
+class Producto(models.Model):
+        #id
+        decisiones =  [('1','Unidad'),('2','Kilo'),('3','Litro'),('4','Otros')]
+        descripcion = models.CharField(max_length=40)
+        precio = models.DecimalField(max_digits=9, decimal_places=2)
+        disponible = models.IntegerField(null=True)
+        tipo = models.CharField(max_length=20, choices=decisiones)
+        tiene_iva = models.BooleanField(null=True)
+        codigo_barra = models.CharField(max_length=100, null=True, blank=True)  # Nuevo campo
+        fecha_introduccion = models.DateField(default=timezone.now)
+        fecha_vencimiento = models.DateField(default=timezone.now)
+        categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, default=1)
+        precio_minimo = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+        precio_maximo = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+        codigo_barra = models.CharField(max_length=100, null=True, blank=True, default='')
+        imagen_codigo = models.ImageField(upload_to='codigos/', null=True, blank=True, default='codigos/OIG.png')
+
+        
+
+        @classmethod
+        def numeroRegistrados(self):
+            return int(self.objects.all().count() )
+    
+
+        @classmethod
+        def productosRegistrados(self):
+            objetos = self.objects.all().order_by('descripcion')
+            return objetos
+
+
+        @classmethod
+        def preciosProductos(self):
+            objetos = self.objects.all().order_by('id')
+            arreglo = []
+            etiqueta = True
+            extra = 1
+
+            for indice,objeto in enumerate(objetos):
+                arreglo.append([])
+                if etiqueta:
+                    arreglo[indice].append(0)
+                    arreglo[indice].append("------")
+                    etiqueta = False
+                    arreglo.append([])
+
+                arreglo[indice + extra].append(objeto.id)
+                precio_producto = objeto.precio
+                if isinstance(precio_producto, str):
+                    arreglo[indice + extra].append(precio_producto)
+                else:
+                    arreglo[indice + extra].append("%d" % precio_producto)  
+
+            return arreglo 
+
+        @classmethod
+        def productosDisponibles(self):
+            objetos = self.objects.all().order_by('id')
+            arreglo = []
+            etiqueta = True
+            extra = 1
+
+            for indice,objeto in enumerate(objetos):
+                arreglo.append([])
+                if etiqueta:
+                    arreglo[indice].append(0)
+                    arreglo[indice].append("------")
+                    etiqueta = False
+                    arreglo.append([])
+
+                arreglo[indice + extra].append(objeto.id)
+                productos_disponibles = objeto.disponible
+                arreglo[indice + extra].append("%d" % (productos_disponibles) )  
+
+            return arreglo 
+#---------------------------------------------------------------------------------------
+
+
+#------------------------------------------PRECIOS--------------------------------------
+class PrecioScraping(models.Model):
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='precios_scraping')
+    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    fuente = models.CharField(max_length=100)
+    fecha_obtencion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.producto} - {self.precio} ({self.fuente})"
+    
+#---------------------------------------------------------------------------------------
 
 #------------------------------------------CLIENTE--------------------------------------
 class Cliente(models.Model):
@@ -256,4 +290,15 @@ class Notificaciones(models.Model):
     #id
     autor = models.ForeignKey(Usuario,to_field='username', on_delete=models.CASCADE)
     mensaje = models.TextField()
+#---------------------------------------------------------------------------------------    
+
+#------------------------------------CARRITO DE COMPRAS---------------------------------
+class Cart(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
+    product = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
 #---------------------------------------------------------------------------------------    

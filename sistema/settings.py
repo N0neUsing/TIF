@@ -25,7 +25,12 @@ SECRET_KEY = 'cwc9m+z#ppu8)+@v#$7ci$=w*gae$+%n&gfq6kcsn#59ze(3a3'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.0.116']
+ALLOWED_HOSTS = ['a558-186-139-136-192.ngrok-free.app', 'localhost', 'premium-swine-vigorously.ngrok-free.app']
+
+# settings.py
+
+CSRF_TRUSTED_ORIGINS = ["https://premium-swine-vigorously.ngrok-free.app"]
+
 
 
 # Application definition
@@ -38,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [
@@ -47,6 +53,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -128,5 +135,11 @@ STATIC_URL = '/static/'
 
 
 AUTH_USER_MODEL = 'inventario.Usuario' # modelo de usuario
+CSRF_TRUSTED_ORIGINS = ['https://a558-186-139-136-192.ngrok-free.app']
 
 
+# Media files configuration
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'

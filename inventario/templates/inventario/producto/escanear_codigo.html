@@ -1,0 +1,46 @@
+{% extends 'inventario/comun/base.html' %}
+
+{% block content %}
+<style>
+    #interactive {
+        width: 100%; /* Ajusta según sea necesario */
+        height: 300px; /* Ajusta según sea necesario */
+    }
+</style>
+<div class="container">
+    <h1>Escanear Productos</h1>
+    
+    <!-- Botón para iniciar el escaneo -->
+    <button id="startScanButton">Iniciar Escaneo</button>
+
+    <!-- Vista previa de la cámara -->
+    <div id="interactive" class="viewport"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<script type="text/javascript">
+    document.getElementById('startScanButton').addEventListener('click', function() {
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: document.querySelector('#interactive')    
+            },
+            decoder: {
+                readers: ["code_128_reader"]
+            }
+        }, function(err) {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            Quagga.start();
+        });
+
+        Quagga.onDetected(function(data) {
+            // Aquí se procesará el código escaneado
+            console.log(data);
+        });
+    });
+</script>
+{% endblock %}

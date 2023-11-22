@@ -1,5 +1,5 @@
 #renderiza las vistas al usuario
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 # para redirigir a otras paginas
 from django.http import HttpResponseRedirect, HttpResponse,FileResponse
 #el formulario de login
@@ -10,6 +10,16 @@ from django.views import View
 from django.contrib.auth import authenticate, login, logout
 #verifica si el usuario esta logeado
 from django.contrib.auth.mixins import LoginRequiredMixin
+from .models import Categoria, Cart, CartItem
+from .forms import CategoriaForm
+from django.views.generic import ListView
+from .models import PrecioScraping
+from django.db.models import Min, Max
+import requests
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from io import BytesIO
 
 #modelos
 from .models import *
@@ -363,34 +373,20 @@ class AgregarProducto(LoginRequiredMixin, View):
     redirect_field_name = None
 
     def post(self, request):
-        # Crea una instancia del formulario y la llena con los datos:
-        form = ProductoFormulario(request.POST)
-        # Revisa si es valido:
+        form = ProductoFormulario(request.POST, request.FILES)
         if form.is_valid():
-            # Procesa y asigna los datos con form.cleaned_data como se requiere
-            descripcion = form.cleaned_data['descripcion']
-            precio = form.cleaned_data['precio']
-            tipo = form.cleaned_data['tipo']
-            tiene_iva = form.cleaned_data['tiene_iva']
-            disponible = 0
-
-            prod = Producto(descripcion=descripcion,precio=precio,tipo=tipo,tiene_iva=tiene_iva,disponible=disponible)
+            prod = form.save(commit=False)
+            # prod.disponible ya está incluido en el formulario, no es necesario asignarlo manualmente
             prod.save()
-            
-            form = ProductoFormulario()
-            messages.success(request, 'Ingresado exitosamente bajo la ID %s.' % prod.id)
-            request.session['productoProcesado'] = 'agregado'
-            return HttpResponseRedirect("/inventario/agregarProducto")
+            messages.success(request, 'Producto agregado exitosamente.')
+            return HttpResponseRedirect("/inventario/listarProductos")
         else:
-            #De lo contrario lanzara el mismo formulario
             return render(request, 'inventario/producto/agregarProducto.html', {'form': form})
 
-    # Si se llega por GET crearemos un formulario en blanco
-    def get(self,request):
+    def get(self, request):
         form = ProductoFormulario()
-        #Envia al usuario el formulario para que lo llene
-        contexto = {'form':form , 'modo':request.session.get('productoProcesado')}   
-        contexto = complementarContexto(contexto,request.user)  
+        contexto = {'form': form}
+        contexto = complementarContexto(contexto, request.user)
         return render(request, 'inventario/producto/agregarProducto.html', contexto)
 #Fin de vista------------------------------------------------------------------------# 
 
@@ -474,38 +470,21 @@ class EditarProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
-    def post(self,request,p):
-        # Crea una instancia del formulario y la llena con los datos:
-        form = ProductoFormulario(request.POST)
-        # Revisa si es valido:
+    def post(self, request, id):
+        producto = get_object_or_404(Producto, pk=id)
+        form = ProductoFormulario(request.POST, request.FILES, instance=producto)
         if form.is_valid():
-            # Procesa y asigna los datos con form.cleaned_data como se requiere
-            descripcion = form.cleaned_data['descripcion']
-            precio = form.cleaned_data['precio']
-            tipo = form.cleaned_data['tipo']
-            tiene_iva = form.cleaned_data['tiene_iva']
-
-            prod = Producto.objects.get(id=p)
-            prod.descripcion = descripcion
-            prod.precio = precio
-            prod.tipo = tipo
-            prod.tiene_iva = tiene_iva
-            prod.save()
-            form = ProductoFormulario(instance=prod)
-            messages.success(request, 'Actualizado exitosamente el producto de ID %s.' % p)
-            request.session['productoProcesado'] = 'editado'            
-            return HttpResponseRedirect("/inventario/editarProducto/%s" % prod.id)
+            form.save()
+            messages.success(request, 'Actualizado exitosamente el producto de ID %s.' % id)
+            return HttpResponseRedirect("/inventario/editarProducto/%s" % id)
         else:
-            #De lo contrario lanzara el mismo formulario
-            return render(request, 'inventario/producto/agregarProducto.html', {'form': form})
+            return render(request, 'inventario/producto/agregarProducto.html', {'form': form, 'editar': True})
 
-    def get(self, request,p): 
-        prod = Producto.objects.get(id=p)
-        form = ProductoFormulario(instance=prod)
-        #Envia al usuario el formulario para que lo llene
-        contexto = {'form':form , 'modo':request.session.get('productoProcesado'),'editar':True}    
-        contexto = complementarContexto(contexto,request.user) 
-        return render(request, 'inventario/producto/agregarProducto.html', contexto)
+    def get(self, request, id): 
+        producto = get_object_or_404(Producto, pk=id)
+        form = ProductoFormulario(instance=producto)
+        return render(request, 'inventario/producto/agregarProducto.html', {'form': form, 'editar': True})
+
 #Fin de vista------------------------------------------------------------------------------------#      
 
 
@@ -1605,6 +1584,206 @@ class VerManualDeUsuario(LoginRequiredMixin, View):
         if pagina == 'opciones':
             return render(request, 'inventario/manual/opciones.html')
 
+
+
+#Fin de vista--------------------------------------------------------------------------------
+
+class EscanearProducto(View):
+    def get(self, request):
+        # Aquí va la lógica para manejar la solicitud GET
+        return render(request, 'inventario/producto/escanear_codigo.html')
+    
+
+#Accede a los modulos del manual de usuario---------------------------------------------#
+def lista_categorias(request):
+    categorias = Categoria.objects.all()
+    return render(request, 'inventario/producto/lista.html', {'categorias': categorias})
+
+def crear_categoria(request):
+    form = CategoriaForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        return redirect('inventario:lista_categorias')
+    return render(request, 'producto/crear_categoria.html', {'form': form})
+
+
+def editar_categoria(request, id):
+    categoria = get_object_or_404(Categoria, id=id)
+    if request.method == 'POST':
+        form = CategoriaForm(request.POST, instance=categoria)
+        if form.is_valid():
+            form.save()
+            return redirect('inventario:lista_categorias')
+    else:
+        form = CategoriaForm(instance=categoria)
+    return render(request, 'inventario/producto/editar_categoria.html', {'form': form, 'categoria': categoria})
+
+def eliminar_categoria(request, id):
+    categoria = get_object_or_404(Categoria, id=id)
+    if request.method == 'POST':
+        categoria.delete()
+        return redirect('inventario:lista_categorias')  # Corregido aquí
+    # No necesitas renderizar 'producto/lista.html' aquí si solo estás eliminando.
+    return redirect('inventario:lista_categorias')
+
+
+
+#Fin de vista--------------------------------------------------------------------------------
+    
+#Parte dedicada a los precios----------------------------------------------------------------
+
+class PreciosProducto(View):
+    def get(self, request):
+        # Obtener todos los productos
+        productos = Producto.objects.all()
+        # Margen de ganancia deseado
+        margen_ganancia = 1.20  # 20%
+        
+        # Tu clave de API de Google
+        google_api_key = 'AIzaSyBzryp6M5NgaZnLAUOIQ4_KJQNYC-PNNrU'
+
+        precios_context = []
+        for producto in productos:
+            precios_scraping = producto.precios_scraping.all().order_by('-fecha_obtencion')
+            precio_minimo_scraping = precios_scraping.aggregate(Min('precio'))['precio__min'] if precios_scraping else None
+            precio_maximo_scraping = precios_scraping.aggregate(Max('precio'))['precio__max'] if precios_scraping else None
+
+            precio_sugerido = precio_minimo_scraping * margen_ganancia if precio_minimo_scraping else None
+            
+            diferencia_precio = None
+            if precio_sugerido and producto.precio:
+                diferencia_precio = producto.precio - precio_sugerido
+
+            ultima_actualizacion = precios_scraping.first().fecha_obtencion if precios_scraping else None
+
+            # Realizar búsqueda de precios con la API de Google Custom Search
+            resultados_busqueda = self.buscar_precios(producto.descripcion, google_api_key)
+
+            precios_context.append({
+                'producto': producto,
+                'precio_minimo_scraping': precio_minimo_scraping,
+                'precio_maximo_scraping': precio_maximo_scraping,
+                'precio_sugerido': precio_sugerido,
+                'diferencia_precio': diferencia_precio,
+                'ultima_actualizacion': ultima_actualizacion,
+                'resultados_busqueda': resultados_busqueda, 
+            })
+
+            # Imprimir para depuración
+            print(f"Producto: {producto.descripcion}, Precio Min: {precio_minimo_scraping}, Precio Max: {precio_maximo_scraping}")
+
+        return render(request, 'inventario/producto/preciosProducto.html', {'precios_context': precios_context})
+
+    def buscar_precios(self, producto_nombre, api_key):
+        url = "https://www.googleapis.com/customsearch/v1"
+        parametros = {
+            'key': api_key,
+            'cx': 'e6f1f66c7c2d541f5',
+            'q': producto_nombre,
+        }
+        try:
+            respuesta = requests.get(url, params=parametros)
+            respuesta.raise_for_status()
+            return respuesta.json()
+        except requests.RequestException as e:
+            print(f"Error al realizar la búsqueda: {e}")
+            return {}
+
+
+
+#Fin de vista--------------------------------------------------------------------------------
+
+#Carrito de compras--------------------------------------------------------------------------
+class AddToCartView(View):
+    def get(self, request, product_id):
+        product = get_object_or_404(Producto, id=product_id)
+        cart = request.session.get('cart', {})
+        quantity_in_cart = cart.get(str(product_id), 0)
+
+        # Comprobar si añadir otro excede la disponibilidad
+        if quantity_in_cart + 1 > product.disponible:
+            messages.error(request, f"No puedes agregar más de {product.disponible} unidades de {product.descripcion}.")
+            return redirect('inventario:listarProductos')
+
+        # Agregar o actualizar cantidad en el carrito
+        cart[product_id] = quantity_in_cart + 1
+        request.session['cart'] = cart
+        messages.success(request, f'Producto {product.descripcion} agregado correctamente.')
+        return redirect('inventario:listarProductos')
+
+class CartView(View):
+    def get(self, request):
+        cart = request.session.get('cart', {})
+        products = []
+        total = 0
+        for product_id, quantity in cart.items():
+            product = get_object_or_404(Producto, id=product_id)
+            precio = float(product.precio)
+            total += precio * int(quantity)
+            products.append({'product': product, 'quantity': quantity})
+        return render(request, 'inventario/producto/carrito.html', {'products': products, 'total': total})
+
+class UpdateCartItemView(View):
+    def post(self, request, product_id):
+        cart = request.session.get('cart', {})
+        product = get_object_or_404(Producto, id=product_id)
+        quantity = int(request.POST.get('quantity', 1))
+
+        # Asegurarse de que no se añadan más productos de los disponibles
+        if quantity > product.disponible:
+            messages.error(request, f"No puedes añadir más de {product.disponible} unidades de {product.descripcion}.")
+            return redirect('inventario:cart')
+
+        cart[product_id] = quantity
+        request.session['cart'] = cart
+        return redirect('inventario:cart')
+
+class RemoveFromCart(View):
+    def get(self, request, product_id):
+        cart = request.session.get('cart', {})
+        cart.pop(str(product_id), None)
+        request.session['cart'] = cart
+        return redirect('inventario:cart')
+
+class Checkout(View):
+    def post(self, request):
+        cart = request.session.get('cart', {})
+        for product_id, quantity in cart.items():
+            product = Producto.objects.get(id=product_id)
+            if quantity > product.disponible:
+                messages.error(request, f"No hay suficiente stock para {product.descripcion}.")
+                return redirect('inventario:cart')
+
+            product.disponible -= int(quantity)
+            product.save()
+
+        pdf = generate_pdf_receipt(cart)
+        request.session['cart'] = {}
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="recibo.pdf"'
+        return response
+
+def generate_pdf_receipt(cart):
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, 750, "Recibo de Compra")
+
+    y = 700
+    p.setFont("Helvetica", 12)
+    total = 0
+    for product_id, quantity in cart.items():
+        product = get_object_or_404(Producto, id=product_id)
+        line_total = float(product.precio) * int(quantity)
+        total += line_total
+        p.drawString(100, y, f"{product.descripcion} x {quantity} @ ${product.precio} cada uno: ${line_total:.2f}")
+        y -= 20
+
+    p.drawString(100, y, f"Total: ${total:.2f}")
+    p.showPage()
+    p.save()
+    buffer.seek(0)
+    return buffer
 
 
 #Fin de vista--------------------------------------------------------------------------------

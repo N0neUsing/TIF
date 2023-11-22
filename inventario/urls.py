@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 app_name = "inventario"
 
@@ -14,7 +16,9 @@ path('listarProductos', views.ListarProductos.as_view(), name='listarProductos')
 path('agregarProducto', views.AgregarProducto.as_view(), name='agregarProducto'),
 path('importarProductos', views.ImportarProductos.as_view(), name='importarProductos'),
 path('exportarProductos', views.ExportarProductos.as_view(), name='exportarProductos'),
-path('editarProducto/<int:p>', views.EditarProducto.as_view(), name='editarProducto'),
+path('escanear', views.EscanearProducto.as_view(), name='escanear_codigo'),
+path('editarProducto/<int:id>/', views.EditarProducto.as_view(), name='editar_producto'),
+path('preciosProducto', views.PreciosProducto.as_view(), name='preciosProducto'),
 
 path('listarProveedores', views.ListarProveedores.as_view(), name='listarProveedores'),
 path('agregarProveedor', views.AgregarProveedor.as_view(), name='agregarProveedor'),
@@ -50,6 +54,22 @@ path('importarBDD',views.ImportarBDD.as_view(), name='importarBDD'),
 path('descargarBDD', views.DescargarBDD.as_view(), name='descargarBDD'),
 path('configuracionGeneral', views.ConfiguracionGeneral.as_view(), name='configuracionGeneral'),
 
-path('verManualDeUsuario/<str:pagina>/',views.VerManualDeUsuario.as_view(), name='verManualDeUsuario')
+path('verManualDeUsuario/<str:pagina>/',views.VerManualDeUsuario.as_view(), name='verManualDeUsuario'),
+
+path('categorias/', views.lista_categorias, name='lista_categorias'),
+path('categorias/crear/', views.crear_categoria, name='crear_categoria'),
+path('categorias/editar/<int:id>/', views.editar_categoria, name='editar_categoria'),
+path('categorias/eliminar/<int:id>/', views.eliminar_categoria, name='eliminar_categoria'),
+
+path('carrito/', views.CartView.as_view(), name='cart'),
+path('agregar-a-carrito/<int:product_id>/', views.AddToCartView.as_view(), name='add_to_cart'),
+path('actualizar-item-carrito/<int:product_id>/', views.UpdateCartItemView.as_view(), name='update_cart_item'),
+path('eliminar-de-carrito/<int:product_id>/', views.RemoveFromCart.as_view(), name='remove_from_cart'),
+path('checkout/', views.Checkout.as_view(), name='checkout'),
+
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
 

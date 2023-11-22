@@ -1,5 +1,6 @@
 from django import forms
-from .models import Producto,Cliente, Proveedor, Usuario, Opciones
+from .models import Producto,Cliente, Proveedor, Usuario, Opciones, Categoria
+from django.utils import timezone
 
 from django.forms import ModelChoiceField
 
@@ -24,25 +25,45 @@ class LoginFormulario(forms.Form):
         'class': 'form-control underlined', 'type':'password','id':'password'}))
 
 class ProductoFormulario(forms.ModelForm):
+    disponible = forms.IntegerField(
+        min_value=0,
+        label='Cantidad Disponible',
+        widget=forms.NumberInput(attrs={'class': 'form-control'}),
+        required=False
+    )
     precio = forms.DecimalField(
-        min_value = 0,
-        label = 'Precio',
-        widget = forms.NumberInput(
-        attrs={'placeholder': 'Precio del producto',
-        'id':'precio','class':'form-control'}),
-        )
+        min_value=0,
+        label='Precio',
+        widget=forms.NumberInput(attrs={'placeholder': 'Precio del producto', 'id': 'precio', 'class': 'form-control'}),
+    )
+    fecha_vencimiento = forms.DateField(
+        initial=timezone.now,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        label='Fecha de Vencimiento'
+    )
+    imagen_codigo = forms.ImageField(
+        required=False,
+        label='Imagen del Código',
+        widget=forms.FileInput(attrs={'class': 'form-control-file'})
+    )
+    
     class Meta:
         model = Producto
-        fields = ['descripcion','precio','tipo','tiene_iva']
+        fields = ['descripcion', 'precio', 'tipo', 'tiene_iva', 'categoria', 'precio_minimo', 'precio_maximo', 'fecha_vencimiento', 'imagen_codigo', 'disponible']
         labels = {
-        'descripcion': 'Nombre',
-        'tiene_iva': 'Incluye IVA?'
+            'descripcion': 'Nombre',
+            'tiene_iva': 'Incluye IVA?',
+            'categoria': 'Categoría',
+            'precio_minimo': 'Precio Mínimo',
+            'precio_maximo': 'Precio Máximo'
         }
         widgets = {
-        'descripcion': forms.TextInput(attrs={'placeholder': 'Nombre del producto',
-        'id':'descripcion','class':'form-control'} ),
-        'tipo': forms.Select(attrs={'class':'form-control','id':'tipo'}),
-        'tiene_iva': forms.CheckboxInput(attrs={'class':'checkbox rounded','id':'tiene_iva'}) 
+            'descripcion': forms.TextInput(attrs={'placeholder': 'Nombre del producto', 'id': 'descripcion', 'class': 'form-control'}),
+            'tipo': forms.Select(attrs={'class': 'form-control', 'id': 'tipo'}),
+            'categoria': forms.Select(attrs={'class': 'form-control', 'id': 'categoria'}),
+            'precio_minimo': forms.NumberInput(attrs={'placeholder': 'Precio Mínimo', 'class': 'form-control', 'min': '0'}),
+            'precio_maximo': forms.NumberInput(attrs={'placeholder': 'Precio Máximo', 'class': 'form-control', 'min': '0'}),
+            'tiene_iva': forms.CheckboxInput(attrs={'class': 'checkbox rounded', 'id': 'tiene_iva'})
         }
 
 class ImportarProductosFormulario(forms.Form):
@@ -192,20 +213,20 @@ class EmitirPedidoFormulario(forms.Form):
 
 
 class DetallesPedidoFormulario(forms.Form):
-    productos = Producto.productosRegistrados()
-    precios = Producto.preciosProductos()
+    def __init__(self, *args, **kwargs):
+        super(DetallesPedidoFormulario, self).__init__(*args, **kwargs)
 
-    descripcion = MisProductos(queryset=productos,widget=forms.Select(attrs={'placeholder': 'El producto a debitar','class':'form-control','onchange':'establecerPrecio(this)'}))
+        # Mover la lógica de consulta a la base de datos al método __init__
+        productos = Producto.productosRegistrados()
+        precios = Producto.preciosProductos()
 
-    vista_precio = MisPrecios(required=False,queryset=productos,label="Precio del producto",widget=forms.Select(attrs={'placeholder': 'El precio del producto','class':'form-control','disabled':'true'}))
-
-    cantidad = forms.IntegerField(label="Cantidad",min_value=0,widget=forms.NumberInput(attrs={'placeholder': 'Introduzca la cantidad del producto','class':'form-control','value':'0','onchange':'calculoPrecio(this)'}))
-
-    subtotal = forms.DecimalField(required=False,label="Sub-total",min_value=0,widget=forms.NumberInput(attrs={'placeholder': 'Monto sub-total','class':'form-control','disabled':'true','value':'0'}))
-
-    valor_subtotal = forms.DecimalField(min_value=0,widget=forms.NumberInput(attrs={'placeholder': 'Monto sub-total','class':'form-control','hidden':'true','value':'0'}))      
-
-
+        # Inicializar los campos del formulario con los datos obtenidos
+        self.fields['descripcion'] = MisProductos(queryset=productos, widget=forms.Select(attrs={'placeholder': 'El producto a debitar', 'class': 'form-control', 'onchange': 'establecerPrecio(this)'}))
+        self.fields['vista_precio'] = MisPrecios(required=False, queryset=productos, label="Precio del producto", widget=forms.Select(attrs={'placeholder': 'El precio del producto', 'class': 'form-control', 'disabled': 'true'}))
+        self.fields['cantidad'] = forms.IntegerField(label="Cantidad", min_value=0, widget=forms.NumberInput(attrs={'placeholder': 'Introduzca la cantidad del producto', 'class': 'form-control', 'value': '0', 'onchange': 'calculoPrecio(this)'}))
+        self.fields['subtotal'] = forms.DecimalField(required=False, label="Sub-total", min_value=0, widget=forms.NumberInput(attrs={'placeholder': 'Monto sub-total', 'class': 'form-control', 'disabled': 'true', 'value': '0'}))
+        self.fields['valor_subtotal'] = forms.DecimalField(min_value=0, widget=forms.NumberInput(attrs={'placeholder': 'Monto sub-total', 'class': 'form-control', 'hidden': 'true', 'value': '0'}))
+      
 
 
 class ProveedorFormulario(forms.ModelForm):
@@ -423,3 +444,9 @@ class OpcionesFormulario(forms.Form):
 
     imagen = forms.FileField(required=False,widget = forms.FileInput(
         attrs={'class':'custom-file-input','id':'customFile'}))
+
+
+class CategoriaForm(forms.ModelForm):
+    class Meta:
+        model = Categoria
+        fields = ['nombre', 'descripcion']
