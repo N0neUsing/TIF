@@ -7,6 +7,15 @@
         <h1 class="title">Carrito de Compras</h1>
     </div>
     <section class="section">
+        <!-- Bloque de mensajes -->
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="{% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <div class="row">
             <div class="col-md-12">
                 <div class="card">
@@ -63,7 +72,12 @@
         </div>
     </section>
 </article>
+{% endblock %}
+
+{% block javascript %}
 <script>
-    // Agregar lógica JS si es necesario
+    document.getElementById('id-form-checkout').addEventListener('submit', function() {
+        window.location.reload();
+    });
 </script>
 {% endblock %}

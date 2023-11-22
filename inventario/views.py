@@ -1709,7 +1709,7 @@ class AddToCartView(View):
         cart[product_id] = quantity_in_cart + 1
         request.session['cart'] = cart
         messages.success(request, f'Producto {product.descripcion} agregado correctamente.')
-        return redirect('inventario:listarProductos')
+        return redirect('inventario:cart')
 
 class CartView(View):
     def get(self, request):
@@ -1733,9 +1733,11 @@ class UpdateCartItemView(View):
         if quantity > product.disponible:
             messages.error(request, f"No puedes añadir más de {product.disponible} unidades de {product.descripcion}.")
             return redirect('inventario:cart')
+        
 
         cart[product_id] = quantity
         request.session['cart'] = cart
+        messages.info(request, f'Cantidad actualizada para {product.descripcion}.')
         return redirect('inventario:cart')
 
 class RemoveFromCart(View):
