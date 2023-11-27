@@ -1,15 +1,13 @@
 {% extends "inventario/comun/base.html" %}
+{% include 'path/to/scanModal.html' %}
+{% load my_filters %}
+{% load static %}
 
 {% block content %}
 <article class="content forms-page">
     <div class="title-block">
-        {% if editar %}
-            <h3 class="title">Editar producto</h3>
-            <p class="title-description">Cambie los datos del producto</p>
-        {% else %}
-            <h3 class="title">Agregar producto</h3>
-            <p class="title-description">Introduzca los datos del producto</p>
-        {% endif %}
+        <h3 class="title">{% if editar %}Editar producto{% else %}Agregar producto{% endif %}</h3>
+        <p class="title-description">{% if editar %}Cambie los datos del producto{% else %}Introduzca los datos del producto{% endif %}</p>
     </div>
     <section class="section">
         <div class="row sameheight-container">
@@ -27,31 +25,38 @@
                     {% endfor %}
                 {% endif %}
                 <div class="card card-block sameheight-item">
-                    <form role="form" method="POST" onsubmit="return validarTodo('producto')" enctype="multipart/form-data">
+                    <form role="form" method="POST" enctype="multipart/form-data">
                         {% csrf_token %}
                         {% for field in form %}
-                            <div class="form-group">
-                                <label for="{{ field.name }}">{{ field.label }}</label>
-                                {% if field.name == 'tiene_iva' %}
-                                    <label>
-                                        {{ field }}
-                                        <span>{{ field.label }}</span>
-                                    </label>
-                                {% elif field.name == 'imagen_codigo' %}
-                                    {{ field }} <!-- Manejo especial para cargar imagen -->
-                                {% else %}
+                            {% if field.name != 'codigo_barra' and field.name != 'imagen_producto' %}
+                                <div class="form-group">
+                                    <label for="{{ field.name }}">{{ field.label }}</label>
                                     {{ field }}
-                                {% endif %}
-                                {% if field.errors %}
-                                    <div class="alert alert-danger">
-                                        {{ field.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
+                                    {% if field.errors %}
+                                        <div class="alert alert-danger">
+                                            {{ field.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
                         {% endfor %}
+                        <!-- Campos personalizados fuera de la iteración -->
+                        <div class="form-group">
+                            <button type="button" id="btn-scan-qr" data-toggle="modal" data-target="#modalScanner">
+                                Escanear Código
+                            </button>
+                            <div style="margin-left: 10px; display: inline-block;">
+                                Código escaneado: <input type="text" id="codigoBarra" name="codigo_barra" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="id_imagen_producto">Imagen del Producto:</label>
+                            <input type="file" class="form-control-file" id="id_imagen_producto" name="imagen_producto">
+                        </div>
                         <div class="form-group">
                             <button type="submit" class="btn btn-primary">Ingresar</button>
                         </div>
+                        <div id="avisoRapido">Código escaneado</div>
                     </form>
                 </div>
             </div>

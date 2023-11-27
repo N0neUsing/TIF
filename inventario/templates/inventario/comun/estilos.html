@@ -17,6 +17,8 @@
 
         <link rel="stylesheet" href="{% static 'inventario/css/alertify-css/alertify.css' %}">
 
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
         <style>
             .error-personal
             {
@@ -24,6 +26,25 @@
                 background: rgba(250, 0, 0, 0,95);
                 text-shadow: -1px -1px 0 rgba(0, 0, 0, 0,5);
             }
+            
+            #avisoRapido {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 10px;
+            border: 1px solid #000;
+            display: none;
+        }
+        .expand-on-hover {
+        transition: transform 1.3s ease;
+        }
+
+        .expand-on-hover:hover {
+        transform: scale(5); /* Aumenta el tamaño de la imagen */
+        }
+
         </style>
         
     </head>

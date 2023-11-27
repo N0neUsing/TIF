@@ -25,7 +25,7 @@ SECRET_KEY = 'cwc9m+z#ppu8)+@v#$7ci$=w*gae$+%n&gfq6kcsn#59ze(3a3'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['a558-186-139-136-192.ngrok-free.app', 'localhost', 'premium-swine-vigorously.ngrok-free.app']
+ALLOWED_HOSTS = ['*']
 
 # settings.py
 
@@ -132,11 +132,16 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 
 
 AUTH_USER_MODEL = 'inventario.Usuario' # modelo de usuario
-CSRF_TRUSTED_ORIGINS = ['https://a558-186-139-136-192.ngrok-free.app']
-
+CSRF_TRUSTED_ORIGINS = ['https://premium-swine-vigorously.ngrok-free.app']
+CORS_ORIGIN_WHITELIST = [
+    'https://premium-swine-vigorously.ngrok-free.app',
+]
 
 # Media files configuration
 MEDIA_URL = '/media/'

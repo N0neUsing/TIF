@@ -67,9 +67,8 @@ path('actualizar-item-carrito/<int:product_id>/', views.UpdateCartItemView.as_vi
 path('eliminar-de-carrito/<int:product_id>/', views.RemoveFromCart.as_view(), name='remove_from_cart'),
 path('checkout/', views.Checkout.as_view(), name='checkout'),
 
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
 

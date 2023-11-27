@@ -1,5 +1,7 @@
 {% extends "inventario/comun/base.html" %}
+{% include 'path/to/scanModal.html' %}
 {% load my_filters %}
+{% load static %}
 
 {% block content %}
 <article class="content">
@@ -21,10 +23,13 @@
                 <div class="card">
                     <div class="card-block">
                         <h3 class="title">Productos en el Carrito</h3>
+                        <!-- Botón para iniciar el escaneo en carrito.html -->
+                        <button id="startScanButton" class="btn btn-primary" data-toggle="modal" data-target="#scanModalCarrito">Escanear Producto</button>
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>
                                     <tr>
+                                        <th>Imagen</th>
                                         <th>Producto</th>
                                         <th>Cantidad</th>
                                         <th>Precio Unitario</th>
@@ -34,19 +39,23 @@
                                 </thead>
                                 <tbody>
                                     {% for item in products %}
-                                        <tr>
+                                        <tr id="product-row-{{ item.product.id }}">
+                                            <td>
+                                                {% if item.product.imagen_producto %}
+                                                    <img src="{{ item.product.imagen_producto.url }}" alt="{{ item.product.descripcion }}" class="expand-on-hover" height="50">
+                                                {% else %}
+                                                    Sin Imagen
+                                                {% endif %}
+                                            </td>
                                             <td>{{ item.product.descripcion }}</td>
                                             <td>
-                                                <form method="post" action="{% url 'inventario:update_cart_item' item.product.id %}">
-                                                    {% csrf_token %}
-                                                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1">
-                                                    <button type="submit">Actualizar</button>
-                                                </form>
+                                                <input type="number" name="quantity" value="{{ item.quantity }}" min="1">
+                                                <button type="button" class="btn btn-primary btn-update-cart" data-product-id="{{ item.product.id }}">Actualizar</button>
                                             </td>
-                                            <td>{{ item.product.precio }}</td>
-                                            <td>{{ item.product.precio|floatformat:2|multiply:item.quantity|floatformat:2 }}</td>
+                                            <td class="product-price">{{ item.product.precio|floatformat:2 }}</td>
+                                            <td class="subtotal-cell">{{ item.product.precio|floatformat:2|multiply:item.quantity|floatformat:2 }}</td>
                                             <td>
-                                                <a href="{% url 'inventario:remove_from_cart' item.product.id %}" class="btn btn-danger">Eliminar</a>
+                                                <a href="{% url 'inventario:remove_from_cart' item.product.id %}" class="btn btn-danger remove-from-cart">Eliminar</a>
                                             </td>
                                         </tr>
                                     {% empty %}
@@ -59,7 +68,7 @@
                         </div>
                         {% if products %}
                             <div class="card-footer">
-                                <h4>Total: {{ total|floatformat:2 }}</h4>
+                                <h4>Total: <span class="total-carrito">{{ total|floatformat:2 }}</span></h4>
                                 <form id="id-form-checkout" method="post" action="{% url 'inventario:checkout' %}">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-primary">Finalizar Compra</button>
@@ -73,11 +82,6 @@
     </section>
 </article>
 {% endblock %}
-
 {% block javascript %}
-<script>
-    document.getElementById('id-form-checkout').addEventListener('submit', function() {
-        window.location.reload();
-    });
-</script>
+<script src="{% static 'inventario/js/cart.js' %}"></script>
 {% endblock %}

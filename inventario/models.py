@@ -3,7 +3,9 @@ from django.contrib.auth.models import AbstractUser
 import datetime
 from django.utils import timezone
 from django.conf import settings
-
+from io import BytesIO
+import qrcode
+from django.core.files import File
 
 # MODELOS
 
@@ -47,7 +49,7 @@ class Categoria(models.Model):
         return self.nombre
 #---------------------------------------------------------------------------------------
 
-    #-------------------------------PRODUCTO------------------------------------------------
+#-------------------------------PRODUCTO------------------------------------------------
 
 class Producto(models.Model):
         #id
@@ -63,8 +65,27 @@ class Producto(models.Model):
         categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, default=1)
         precio_minimo = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
         precio_maximo = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-        codigo_barra = models.CharField(max_length=100, null=True, blank=True, default='')
-        imagen_codigo = models.ImageField(upload_to='codigos/', null=True, blank=True, default='codigos/OIG.png')
+        codigo_barra = models.CharField(max_length=100, null=True, blank=True)
+        imagen_codigo_qr = models.ImageField(upload_to='codigos_qr/', null=True, blank=True)
+        imagen_producto = models.ImageField(upload_to='imagenes_productos/', null=True, blank=True)
+
+
+        def save(self, *args, **kwargs):
+            qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+            qr.add_data(self.codigo_barra)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            buffer = BytesIO()
+            img.save(buffer)
+            filename = f'qr_{self.codigo_barra}.png'
+            filebuffer = File(buffer, name=filename)
+            self.imagen_codigo_qr.save(filename, filebuffer, save=False)
+            super().save(*args, **kwargs)
 
         
 

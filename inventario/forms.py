@@ -29,7 +29,7 @@ class ProductoFormulario(forms.ModelForm):
         min_value=0,
         label='Cantidad Disponible',
         widget=forms.NumberInput(attrs={'class': 'form-control'}),
-        required=False
+        required=True
     )
     precio = forms.DecimalField(
         min_value=0,
@@ -46,10 +46,20 @@ class ProductoFormulario(forms.ModelForm):
         label='Imagen del Código',
         widget=forms.FileInput(attrs={'class': 'form-control-file'})
     )
+    imagen_producto = forms.ImageField(
+    required=False,
+    label='Imagen del Producto',
+    widget=forms.FileInput(attrs={'class': 'form-control-file'})
+    )
+    codigo_barra = forms.CharField(
+        max_length=100, 
+        required=False, 
+        widget=forms.TextInput(attrs={'id': 'codigoBarra', 'class': 'form-control'})
+    )
     
     class Meta:
         model = Producto
-        fields = ['descripcion', 'precio', 'tipo', 'tiene_iva', 'categoria', 'precio_minimo', 'precio_maximo', 'fecha_vencimiento', 'imagen_codigo', 'disponible']
+        fields = ['descripcion', 'precio', 'tipo', 'tiene_iva', 'categoria', 'precio_minimo', 'precio_maximo', 'fecha_vencimiento', 'imagen_codigo', 'disponible', 'imagen_producto', 'codigo_barra']
         labels = {
             'descripcion': 'Nombre',
             'tiene_iva': 'Incluye IVA?',

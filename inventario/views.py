@@ -20,6 +20,8 @@ from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from io import BytesIO
+from django.http import JsonResponse
+from django.urls import reverse
 
 #modelos
 from .models import *
@@ -374,7 +376,9 @@ class AgregarProducto(LoginRequiredMixin, View):
 
     def post(self, request):
         form = ProductoFormulario(request.POST, request.FILES)
+        print(form.is_valid())  # Debería imprimir True si el formulario es válido
         if form.is_valid():
+            print(form.cleaned_data)
             prod = form.save(commit=False)
             # prod.disponible ya está incluido en el formulario, no es necesario asignarlo manualmente
             prod.save()
@@ -388,6 +392,7 @@ class AgregarProducto(LoginRequiredMixin, View):
         contexto = {'form': form}
         contexto = complementarContexto(contexto, request.user)
         return render(request, 'inventario/producto/agregarProducto.html', contexto)
+    
 #Fin de vista------------------------------------------------------------------------# 
 
 
@@ -475,8 +480,9 @@ class EditarProducto(LoginRequiredMixin, View):
         form = ProductoFormulario(request.POST, request.FILES, instance=producto)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Actualizado exitosamente el producto de ID %s.' % id)
-            return HttpResponseRedirect("/inventario/editarProducto/%s" % id)
+            messages.success(request, 'Producto actualizado exitosamente.')
+            url = reverse('inventario:listarProductos') + f'?edited={producto.id}'
+            return redirect(url)
         else:
             return render(request, 'inventario/producto/agregarProducto.html', {'form': form, 'editar': True})
 
@@ -1695,21 +1701,18 @@ class PreciosProducto(View):
 
 #Carrito de compras--------------------------------------------------------------------------
 class AddToCartView(View):
-    def get(self, request, product_id):
+    def post(self, request, product_id):
         product = get_object_or_404(Producto, id=product_id)
         cart = request.session.get('cart', {})
         quantity_in_cart = cart.get(str(product_id), 0)
 
-        # Comprobar si añadir otro excede la disponibilidad
         if quantity_in_cart + 1 > product.disponible:
-            messages.error(request, f"No puedes agregar más de {product.disponible} unidades de {product.descripcion}.")
-            return redirect('inventario:listarProductos')
+            return JsonResponse({'success': False, 'message': f"No puedes agregar más de {product.disponible} unidades de {product.descripcion}."})
 
-        # Agregar o actualizar cantidad en el carrito
-        cart[product_id] = quantity_in_cart + 1
+        cart[str(product_id)] = quantity_in_cart + 1
         request.session['cart'] = cart
-        messages.success(request, f'Producto {product.descripcion} agregado correctamente.')
-        return redirect('inventario:cart')
+        return JsonResponse({'success': True, 'message': f'Producto {product.descripcion} agregado correctamente.'})
+
 
 class CartView(View):
     def get(self, request):
@@ -1729,16 +1732,15 @@ class UpdateCartItemView(View):
         product = get_object_or_404(Producto, id=product_id)
         quantity = int(request.POST.get('quantity', 1))
 
-        # Asegurarse de que no se añadan más productos de los disponibles
         if quantity > product.disponible:
-            messages.error(request, f"No puedes añadir más de {product.disponible} unidades de {product.descripcion}.")
-            return redirect('inventario:cart')
+            return JsonResponse({'success': False, 'message': f"No puedes añadir más de {product.disponible} unidades de {product.descripcion}."})
         
-
         cart[product_id] = quantity
         request.session['cart'] = cart
-        messages.info(request, f'Cantidad actualizada para {product.descripcion}.')
-        return redirect('inventario:cart')
+
+        # Calcular el nuevo subtotal (o total si es necesario)
+        new_subtotal = product.precio * quantity  # Asegúrate de que esto sea una multiplicación matemática
+        return JsonResponse({'success': True, 'message': 'Cantidad actualizada.', 'new_subtotal': new_subtotal})
 
 class RemoveFromCart(View):
     def get(self, request, product_id):
