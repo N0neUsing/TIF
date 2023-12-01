@@ -22,6 +22,8 @@ from reportlab.lib.pagesizes import letter
 from io import BytesIO
 from django.http import JsonResponse
 from django.urls import reverse
+import json
+from django.core.serializers.json import DjangoJSONEncoder
 
 #modelos
 from .models import *
@@ -1788,6 +1790,39 @@ def generate_pdf_receipt(cart):
     p.save()
     buffer.seek(0)
     return buffer
+
+class AgregarProductoPorCodigo(View):
+    def post(self, request):
+        data = json.loads(request.body)
+        codigo_barra = data.get('codigoBarra')
+
+        # Buscar el producto por su código de barras
+        producto = get_object_or_404(Producto, codigo_barra=codigo_barra)
+
+        # Inicializar o obtener el carrito de compras
+        cart = request.session.get('cart', {})
+        
+        # Inicializar quantity_in_cart
+        quantity_in_cart = cart.get(str(producto.id), 0)
+
+        if quantity_in_cart + 1 > producto.disponible:
+            return JsonResponse({'success': False, 'message': f"No puedes agregar más de {producto.disponible} unidades de {producto.descripcion}."})
+
+        # Actualizar el carrito en la sesión
+        cart[str(producto.id)] = quantity_in_cart + 1
+        request.session['cart'] = cart
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Producto {producto.descripcion} agregado correctamente.',
+            'producto': {
+                'id': producto.id,
+                'descripcion': producto.descripcion,
+                'precio': producto.precio,
+                'imagen': producto.imagen_producto.url if producto.imagen_producto else None
+            }
+        })
+
 
 
 #Fin de vista--------------------------------------------------------------------------------

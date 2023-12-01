@@ -66,6 +66,9 @@ path('agregar-a-carrito/<int:product_id>/', views.AddToCartView.as_view(), name=
 path('actualizar-item-carrito/<int:product_id>/', views.UpdateCartItemView.as_view(), name='update_cart_item'),
 path('eliminar-de-carrito/<int:product_id>/', views.RemoveFromCart.as_view(), name='remove_from_cart'),
 path('checkout/', views.Checkout.as_view(), name='checkout'),
+path('agregar-producto-por-codigo/', views.AgregarProductoPorCodigo.as_view(), name='agregar_producto_por_codigo'),
+
+
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

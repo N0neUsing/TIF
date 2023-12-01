@@ -82,9 +82,8 @@
 
 
 <!-- Modal para el escáner de QR -->
-
 <div class="modal" id="modalScanner" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Escaner de Código</h5>
@@ -93,14 +92,12 @@
                 </button>
             </div>
             <div class="modal-body">
-                <div id="qr-reader" style="width:500px"></div>
+                <div id="qr-reader" class="w-100"></div>
                 <div id="qr-reader-results"></div>
             </div>
         </div>
     </div>
 </div>
-
-<!-- FIN DE MODAL -->
 
 <!-- Modal para el escáner de QR en carrito.html -->
 <div class="modal fade" id="scanModal" tabindex="-1" role="dialog" aria-labelledby="scanModalLabel" aria-hidden="true">
@@ -114,7 +111,7 @@
             </div>
             <div class="modal-body">
                 <!-- Área única para el escáner QR en carrito.html -->
-                <div id="qr-reader-carrito" style="width:500px"></div>
+                <div id="qr-reader-carrito" class="w-100"></div>
                 <div id="qr-reader-results-carrito"></div>
             </div>
         </div>

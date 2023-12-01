@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 22-11-2023 a las 18:08:29
+-- Tiempo de generación: 28-11-2023 a las 09:03:32
 -- Versión del servidor: 10.4.28-MariaDB
 -- Versión de PHP: 8.2.4
 
@@ -251,7 +251,9 @@ INSERT INTO `django_migrations` (`id`, `app`, `name`, `applied`) VALUES
 (33, 'inventario', '0015_categoria_producto_codigo_barra_and_more', '2023-11-19 21:40:42'),
 (34, 'inventario', '0016_producto_categoria_producto_imagen_codigo_and_more', '2023-11-20 22:12:53'),
 (35, 'inventario', '0017_precioscraping', '2023-11-21 16:20:04'),
-(36, 'inventario', '0018_cart_cartitem', '2023-11-22 12:50:13');
+(36, 'inventario', '0018_cart_cartitem', '2023-11-22 12:50:13'),
+(37, 'inventario', '0019_producto_imagen_codigo_qr', '2023-11-27 03:41:39'),
+(38, 'inventario', '0020_remove_producto_imagen_codigo_and_more', '2023-11-27 03:56:20');
 
 -- --------------------------------------------------------
 
@@ -280,6 +282,7 @@ INSERT INTO `django_session` (`session_key`, `session_data`, `expire_date`) VALU
 ('0umpyqj2ftise60ldv2lrf0mpphmd1mt', 'NGIxNmZkYjEyMmM4ODljMGQ0ZDcyNmEyM2JlODFkNGM5NzkxNjgxZTp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9oYXNoIjoiMWNiM2QzYWJkZWFmZjFjMzUxMzc0M2FiZjU4OTQxMDUzZmYwY2ZjYiIsIl9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIn0=', '2019-10-09 01:20:52'),
 ('0uu5krksfy27hedmt33l272pyxtxgven', 'Y2FmZjFkODc3Y2M5YTFiYTBlMDlkMGMxODllY2I5MzU1NTcwMGFjMzp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiI4ZjEzNzA4YmIwNjIzZjNhOTQxMTU2NDExZDM1YzFmMGRmMjZkZDgwIiwiaWRfY2xpZW50IjoiMjYxNzgxNjQ4OSIsImZvcm1fZGV0YWlscyI6MX0=', '2016-02-25 16:38:54'),
 ('0x6lccu6tu073r127cxz5n49y58ob1fq', 'ZGExNDRiNjU1MzcyMzk5ZDM4NjE3MDc2ZjU3M2RiYWVjMjI3OTMzYTp7Il9hdXRoX3VzZXJfaWQiOiIxIiwicHJvdmVlZG9yUHJvY2VzYWRvIjoiZWRpdGFkbyIsImZvcm1fZGV0YWlscyI6MSwiaWRfcHJvdmVlZG9yIjoiMjc4NDQ1MzEiLCJfYXV0aF91c2VyX2hhc2giOiI4ZjEzNzA4YmIwNjIzZjNhOTQxMTU2NDExZDM1YzFmMGRmMjZkZDgwIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQifQ==', '2016-02-25 17:11:32'),
+('16m18savowxlx9uxcvtf8huttdfx1ybm', '.eJxVjMEOwiAQRP-FsyFAKywevfsNZNkFqRpISnsy_rtt0oNeJpl5M_MWAdelhLWnOUwsLgLE6TeLSM9Ud8APrPcmqdVlnqLcK_KgXd4ap9f16P4dFOxlW3vlbWICfQZUEZx3YNiMA-Ts0UKmETlak1VGtOT0pjr5zdPAySCKzxfqDzig:1r6WsH:qHi69-11dITU7LsqS24MsnmkoYioenKqNQpNmY5DjVY', '2023-12-08 14:09:41'),
 ('19xu1ds0o3v60b7i0kh20ch9r1aygvwt', 'YzcwNjM1ODc2Y2Q1MTJkNTc1OGExYzQ1OTExNWFkNmM4Mzk5N2VjNDp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiaWRfY2xpZW50IjoiMjYxNzgxNTQiLCJfYXV0aF91c2VyX2JhY2tlbmQiOiJkamFuZ28uY29udHJpYi5hdXRoLmJhY2tlbmRzLk1vZGVsQmFja2VuZCIsIl9hdXRoX3VzZXJfaGFzaCI6IjhmMTM3MDhiYjA2MjNmM2E5NDExNTY0MTFkMzVjMWYwZGYyNmRkODAiLCJmb3JtX2RldGFpbHMiOjJ9', '2016-02-25 21:29:54'),
 ('1byk8lmxyx38o40gnzet7n6f5h541ex4', 'MDI4ZjQ2ZGY3ZTI5ZDUxNTk5ZTliZTg5MjIxMTgyMTZjZTUwMTg0Yjp7ImlkX2NsaWVudCI6IjI2MTc4MTU0IiwiX2F1dGhfdXNlcl9oYXNoIjoiOGYxMzcwOGJiMDYyM2YzYTk0MTE1NjQxMWQzNWMxZjBkZjI2ZGQ4MCIsIl9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIiwiZm9ybV9kZXRhaWxzIjoyLCJfYXV0aF91c2VyX2lkIjoiMSJ9', '2016-02-25 17:00:17'),
 ('1klv9bvpkcw9kw6d387otdnmzdgym5rs', 'YWMzMGJmMWZkMDYzMGU3NGYyNDg1OWU5Zjc2ZTcwNzEwMjc3MWM3ODp7ImlkX2NsaWVudCI6IjI2MTc4MTU0IiwiX2F1dGhfdXNlcl9oYXNoIjoiOGYxMzcwOGJiMDYyM2YzYTk0MTE1NjQxMWQzNWMxZjBkZjI2ZGQ4MCIsIl9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIiwiX2F1dGhfdXNlcl9pZCI6IjEiLCJmb3JtX2RldGFpbHMiOjF9', '2016-02-25 20:56:31'),
@@ -349,6 +352,8 @@ INSERT INTO `django_session` (`session_key`, `session_data`, `expire_date`) VALU
 ('ivxufr0etyzpddnvggbmu5qja2p45w6i', 'NTE5MjNkM2VkNGUyYmY0MzQ5MmRlZjNmMjUzYmU2NWNhNGNhOTBiZTp7Il9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIiwiaWRfY2xpZW50IjoiMjYxNzgxNTQiLCJfYXV0aF91c2VyX2hhc2giOiI4ZjEzNzA4YmIwNjIzZjNhOTQxMTU2NDExZDM1YzFmMGRmMjZkZDgwIiwiX2F1dGhfdXNlcl9pZCI6IjEiLCJmb3JtX2RldGFpbHMiOjF9', '2016-02-25 18:11:10'),
 ('iwte7y05ei1kn1k5tuwjogh12tlqgz8a', 'NGQ1ZGQ1MjY0YTAzZjg0YzJhMDM1NWJlYzg4NWRlZTBhMWI0NmFlYzp7ImlkX2NsaWVudCI6IjI2MTc4MTU0IiwiZm9ybV9kZXRhaWxzIjoxLCJfYXV0aF91c2VyX2JhY2tlbmQiOiJkamFuZ28uY29udHJpYi5hdXRoLmJhY2tlbmRzLk1vZGVsQmFja2VuZCIsIl9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9oYXNoIjoiOGYxMzcwOGJiMDYyM2YzYTk0MTE1NjQxMWQzNWMxZjBkZjI2ZGQ4MCJ9', '2016-02-25 17:25:20'),
 ('j12f1q7qa019ccb3otq1s5ctskd7gxfe', 'NDdhY2ZiODAzMWFkMzY3MWRlYzdkM2Y2Y2NmM2FmNWM5MjY5NDRmYzp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiI4ZjEzNzA4YmIwNjIzZjNhOTQxMTU2NDExZDM1YzFmMGRmMjZkZDgwIn0=', '2019-04-30 20:59:04'),
+('jev3122i2mwob0w3yrjvslwnub3kda0p', '.eJxVjMEOgyAQRP-Fc0MULS4ee_cbyLILxbbBRPBk_Pdi4qG9TDLzZmYXFrcS7Zb9amcWowBx-80c0tunE_AL03ORtKSyzk6eFXnRLKeF_edxdf8OIuZY16Yx2jNBewdsHAxmAMWq7yAEgxoC9chOq9AERE1DW7X1pnrq2CvEekq4FjHux_EFLyg77A:1r7VET:N0oCaMe4RoVcXwOLWJS4JuwmZXq3XuWwYqSSzOIMJU8', '2023-12-11 06:36:37'),
+('jiolub7j40qt7vp0mkxwnx02azurrswn', '.eJxVjMsOwiAQRf-FtSEUxgIu3fcbmmFmkKqBpI-V8d-1SRe6veec-1IjbmsZt0XmcWJ1UZ1Rp98xIT2k7oTvWG9NU6vrPCW9K_qgix4ay_N6uH8HBZfyrQWS5964DoMn9DYEL9k5As4QAMgAI-QeKNrIGXM8OyaDEqIVjMmp9wcQHzik:1r6ISB:aClKw_GXA7Lsa_qp1inKu0KMtzLyzSxsa_kZ-LmWn6o', '2023-12-07 22:45:47'),
 ('ke2dawkrrvo325x7xu252som9921je6g', 'NDdhY2ZiODAzMWFkMzY3MWRlYzdkM2Y2Y2NmM2FmNWM5MjY5NDRmYzp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiI4ZjEzNzA4YmIwNjIzZjNhOTQxMTU2NDExZDM1YzFmMGRmMjZkZDgwIn0=', '2019-05-02 15:08:57'),
 ('kg1swlke0lymyadtdb1rgjy72r7kbe47', '.eJxVjE0OgjAQhe_StWmgYGldujfxBmQ6MwXUMKSFlfHuloSFbiZv3s_3Vj1s69hvmVM_kboop06_XgB88rwH9IB5EI0yr2kKeq_oI836JsSv69H9A4yQx7L2lbdM6Oqzgyq4znfOkGkbF6MH6yK2QMGaWEUAi11dbs2-_NgQG4ACXZLQhqvckyBnIClYGBIPu_x8AXeQQ9g:1qx58l:sczCWeJwpFaVWlKOvgn0FxJE30LvEvsEJgxjMwkIKPM', '2023-11-12 12:43:39'),
 ('l5is8uc1eg91cw3z64e2vrt61gp5w1dc', 'MjA4ZTM4Y2UwZDc4YjdlZDkxMjAwNWRiZjc4ZTNiZDJhZmI1OTQ5Mzp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiI4ZjEzNzA4YmIwNjIzZjNhOTQxMTU2NDExZDM1YzFmMGRmMjZkZDgwIiwiaWRfY2xpZW50IjoiMjYxNzgxNTQiLCJmb3JtX2RldGFpbHMiOjIsImlkX3Byb3ZlZWRvciI6IjI3ODQ0NTMxIn0=', '2016-02-26 02:21:00'),
@@ -366,17 +371,19 @@ INSERT INTO `django_session` (`session_key`, `session_data`, `expire_date`) VALU
 ('phjty2elb240ix3bqkcjhbntn8kbe7gs', 'ZjlmMDMwMjdkYjUwODU5Nzk0NWY2NzFhMGE3M2I5NmQ5OGU5M2RhYTp7Il9hdXRoX3VzZXJfaGFzaCI6IjFjYjNkM2FiZGVhZmYxYzM1MTM3NDNhYmY1ODk0MTA1M2ZmMGNmY2IiLCJpZF9wcm92ZWVkb3IiOiI4NTQxOTQzMiIsImZvcm1fZGV0YWlscyI6MSwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJfYXV0aF91c2VyX2lkIjoiMSJ9', '2019-12-03 01:21:14'),
 ('pmbgf2mg0ynxmfu83ktg8gcy4bk1wrrw', 'Y2ZjMGYzNGNkMzMyZjAxMTMyZmJlZjUzNDNjYjIxZDBiYjlkOGVlZDp7Il9hdXRoX3VzZXJfaGFzaCI6IjhmMTM3MDhiYjA2MjNmM2E5NDExNTY0MTFkMzVjMWYwZGYyNmRkODAiLCJfYXV0aF91c2VyX2JhY2tlbmQiOiJkamFuZ28uY29udHJpYi5hdXRoLmJhY2tlbmRzLk1vZGVsQmFja2VuZCIsIl9hdXRoX3VzZXJfaWQiOiIxIn0=', '2016-02-25 17:02:19'),
 ('pv5qaldhrfi1h4dp6wd9hi4j04z6wh1w', '.eJxVjMEOwiAQRP-FsyFAKywevfsNZNkFqRpISnsy_rtt0oNeJpl5M_MWAdelhLWnOUwsLgLE6TeLSM9Ud8APrPcmqdVlnqLcK_KgXd4ap9f16P4dFOxlW3vlbWICfQZUEZx3YNiMA-Ts0UKmETlak1VGtOT0pjr5zdPAySCKzxfqDzig:1r3jar:O72hcsYAgBO4Yh4Z2kKH996iw0QO_Y1ppVJ9PoZsVxc', '2023-11-30 21:08:09'),
+('pwun4z1g525mfnvwjc6js309r59ltlpw', '.eJxVjLEOgzAQQ__l5ioiAZILY_d-A7rcJYW2AinAhPj3BomhXSzZz_YOPW3r0G9LzP0o0AHC7TcLxO84nUBeND1nxfO05jGos6IuuqjHLPFzv7p_BwMtQ1n7ytsojLpFqgI679CIaWpMyZPFxA1JsCZViciy00V19MVzLdEQlVOmvEK3g26h08fxBZatPQE:1r7nvh:aiz7oEqigADCPGeHDIleol3w-m3fnyxfizQUk3DSKeg', '2023-12-12 02:34:29'),
 ('py0x06try3tj25nblphx0qg4in5t8pie', 'ZDk2NDczYzNjMTFmZWU3ZTI1NzM4NTZlYWU5YjI0NGYxZWIzNjk4ZTp7fQ==', '2019-03-28 15:52:38'),
 ('qdbxr10xaymsszo21msuxyny96ipfqh0', 'MGQ0YmI4YjE5NDZjZDE0MGRmYzQ1NjcxMDAxN2VmMGU5NGU3ZDRkYTp7Il9hdXRoX3VzZXJfaGFzaCI6IjFjYjNkM2FiZGVhZmYxYzM1MTM3NDNhYmY1ODk0MTA1M2ZmMGNmY2IiLCJfYXV0aF91c2VyX2JhY2tlbmQiOiJkamFuZ28uY29udHJpYi5hdXRoLmJhY2tlbmRzLk1vZGVsQmFja2VuZCIsIl9hdXRoX3VzZXJfaWQiOiIxIn0=', '2016-02-25 16:30:56'),
 ('qqajxe27ya93xe8f6b83tkfc9rj2t5ov', 'MWQyNjRmODY5NWVhNDQzMjhjYzM1MDhiNjFhZDIwNWZhZmFlMTQ0Yzp7Il9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIiwiX2F1dGhfdXNlcl9oYXNoIjoiOGYxMzcwOGJiMDYyM2YzYTk0MTE1NjQxMWQzNWMxZjBkZjI2ZGQ4MCIsIl9hdXRoX3VzZXJfaWQiOiIxIn0=', '2016-02-25 19:18:00'),
 ('qs5qnhtcebrsgnq5hvluuve14cm9j8rq', 'ZTk2MzU0NDIwYmFiZjA3OTc3OGFlMDg0ZTUxMjE0YjNhZTk3YjI3Zjp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiIxY2IzZDNhYmRlYWZmMWMzNTEzNzQzYWJmNTg5NDEwNTNmZjBjZmNiIn0=', '2016-02-25 21:41:08'),
-('rb1t7h7kqvh0hxckzxjq7s9eiu8fv91i', '.eJxVTjkOgzAQ_MvWyMKGmLXL9LwBrXftQBKBxFEh_h4TUSTNSHNqduhoW_tuW-LcDQIeEIpfLRC_4nga8qTxMSmexnUegjoj6nIX1U4S3_cr-zfQ09LntiudjcKob0hlwMY1aMTUFabkyGLimiRYk8pEZLnRGXV0mXMl0RDlUaZ5Bb_nh74uwILXXzTH8QE6sT75:1r5qdG:D6Dk-CBk-QR7Bt_k_-KZeJLgC-tqIaS6VZOLeoHvJtY', '2023-12-06 17:03:22'),
+('rb1t7h7kqvh0hxckzxjq7s9eiu8fv91i', '.eJxVjLEOgzAQQ__l5ioigSYXxu58A7rcJYW2AinAhPj3BomhXSzZz_YOPW3r0G9LzP0o0ALC7TcLxO84nUBeND1nxfO05jGos6Iuuqhulvh5XN2_g4GWoax95W0URn1HqgI679CIaWpMyZPFxA1JsCZViciy00V19MVzLdEQlVOmvEK7g4VWH8cXWkg80Q:1r6DQz:N0xZtjOaD6qnIBwtCXk4yRbV4wWvm1TYpy3FDiBcZgg', '2023-12-07 17:24:13'),
 ('riijh4w0s0m39kaidop8hjlzaekuhk4m', 'NDdhY2ZiODAzMWFkMzY3MWRlYzdkM2Y2Y2NmM2FmNWM5MjY5NDRmYzp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiI4ZjEzNzA4YmIwNjIzZjNhOTQxMTU2NDExZDM1YzFmMGRmMjZkZDgwIn0=', '2019-03-28 16:41:56'),
 ('rnbtxkpo3hu866s7psb8psxq9jg57s19', 'NDg1NTI2NWRlMmVjNjM5ZTU3NzQ5MzM2ODYxN2EyNDcyOTI4Y2I4ODp7Il9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIiwiX2F1dGhfdXNlcl9pZCI6IjEiLCJpZF9jbGllbnQiOiIyNjE3ODE1NCIsIl9hdXRoX3VzZXJfaGFzaCI6IjhmMTM3MDhiYjA2MjNmM2E5NDExNTY0MTFkMzVjMWYwZGYyNmRkODAiLCJmb3JtX2RldGFpbHMiOjJ9', '2016-02-25 18:31:01'),
 ('rp27ost6nnmxwl5lycyleemyv0vh97cu', 'NDg0NWE0ZWJiZjQ1ZmQxMDdlZWU0ZjcwMjZmNmI3YTlmNmI2ZjgzMjp7ImlkX2NsaWVudCI6IjI2MTc4MTU0IiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJmb3JtX2RldGFpbHMiOjIsIl9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9oYXNoIjoiOGYxMzcwOGJiMDYyM2YzYTk0MTE1NjQxMWQzNWMxZjBkZjI2ZGQ4MCJ9', '2016-02-25 23:28:04'),
 ('rs0y5z6k7qc69sezv91qzunhuc7kme8c', 'NDdhY2ZiODAzMWFkMzY3MWRlYzdkM2Y2Y2NmM2FmNWM5MjY5NDRmYzp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiI4ZjEzNzA4YmIwNjIzZjNhOTQxMTU2NDExZDM1YzFmMGRmMjZkZDgwIn0=', '2019-03-31 16:56:59'),
 ('sh8reo7cnq21li7jhm0o2skiazwul2pm', 'MDI4ZjQ2ZGY3ZTI5ZDUxNTk5ZTliZTg5MjIxMTgyMTZjZTUwMTg0Yjp7ImlkX2NsaWVudCI6IjI2MTc4MTU0IiwiX2F1dGhfdXNlcl9oYXNoIjoiOGYxMzcwOGJiMDYyM2YzYTk0MTE1NjQxMWQzNWMxZjBkZjI2ZGQ4MCIsIl9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIiwiZm9ybV9kZXRhaWxzIjoyLCJfYXV0aF91c2VyX2lkIjoiMSJ9', '2016-02-25 17:45:27'),
 ('slv4abddyjl6gije29b2s2mur3dyanu0', 'MDJkMTM4MzJmOGI2ODE2ODg0NTUwMTc4NWYzZTJiNTQ5ZTcwYjE1Yjp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJpZF9jbGllbnQiOiIyNjE3ODE1NCIsIl9hdXRoX3VzZXJfaGFzaCI6IjhmMTM3MDhiYjA2MjNmM2E5NDExNTY0MTFkMzVjMWYwZGYyNmRkODAiLCJmb3JtX2RldGFpbHMiOjF9', '2016-02-25 21:52:33'),
+('sxcfxxn6h80c90c0gck7pmz5qo8uiyw4', '.eJxVjMEOgyAQRP-Fc0MULS4ee_cbyLILxbbBRPBk_Pdi4qG9TDLzZmYXFrcS7Zb9amcWowBx-80c0tunE_AL03ORtKSyzk6eFXnRLKeF_edxdf8OIuZY16Yx2jNBewdsHAxmAMWq7yAEgxoC9chOq9AERE1DW7X1pnrq2CvEekq4FjHux_EFLyg77A:1r7nkP:vPI0XXjBq4mp5q0-ZedgPgiBVCdKbmAdu0PKw2hxST8', '2023-12-12 02:22:49'),
 ('te174zf8xk4mz6huolw17lkre5t3j2ap', 'ZDUzNmMxYTBhZmNhNWQwMmU4YTRlNTU2MTg5OWRmZGJkN2M1YzMwODp7ImZvcm1fZGV0YWlscyI6MiwiX2F1dGhfdXNlcl9oYXNoIjoiOGYxMzcwOGJiMDYyM2YzYTk0MTE1NjQxMWQzNWMxZjBkZjI2ZGQ4MCIsImlkX2NsaWVudCI6IjI2MTc4MTU0IiwiX2F1dGhfdXNlcl9pZCI6IjEiLCJfYXV0aF91c2VyX2JhY2tlbmQiOiJkamFuZ28uY29udHJpYi5hdXRoLmJhY2tlbmRzLk1vZGVsQmFja2VuZCIsImlkX3Byb3ZlZWRvciI6IjI3ODQ0NTMxIn0=', '2016-02-25 21:27:28'),
 ('ttpweyqpgud848b994j3j4e87ka57ctg', 'YzI2NjM1ODU2M2QyMjljYmRiMzIxNjljM2UxODU0NmFlNzg0MWI4Mjp7Il9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIiwiaWRfY2xpZW50IjoiMjYxNzgxNTQiLCJfYXV0aF91c2VyX2lkIjoiMSIsIl9hdXRoX3VzZXJfaGFzaCI6IjhmMTM3MDhiYjA2MjNmM2E5NDExNTY0MTFkMzVjMWYwZGYyNmRkODAiLCJmb3JtX2RldGFpbHMiOjF9', '2016-02-25 19:18:44'),
 ('twfr1azbluru3lcsazsijy2s691v8fan', 'NTY3MjM3ZTZhN2QyZTA0NmVjZmJhMDk4MWMwOTUwZjQ4OWVlMmI0Yjp7ImZvcm1fZGV0YWlscyI6MiwiX2F1dGhfdXNlcl9pZCI6IjEiLCJfYXV0aF91c2VyX2hhc2giOiI4ZjEzNzA4YmIwNjIzZjNhOTQxMTU2NDExZDM1YzFmMGRmMjZkZDgwIiwiaWRfY2xpZW50IjoiMjYxNzgxNjQ4OSIsIl9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIn0=', '2016-02-25 18:06:11'),
@@ -391,10 +398,12 @@ INSERT INTO `django_session` (`session_key`, `session_data`, `expire_date`) VALU
 ('v56a2prv9p3vmzm2vblsuh3obuc378dn', 'YTU1OGVhMjM0Njg4NTM4ZmQxZGExZDM4ZDI0NTM5ZTg5ZGI2ODYyYTp7Il9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIiwiX2F1dGhfdXNlcl9oYXNoIjoiMWNiM2QzYWJkZWFmZjFjMzUxMzc0M2FiZjU4OTQxMDUzZmYwY2ZjYiIsIl9hdXRoX3VzZXJfaWQiOiIxIn0=', '2019-10-10 00:22:52'),
 ('viyqqlqoph3fqv91pxry9bw6lcef70zf', 'MThkNDEwZTA5MGJmZjViY2E3YTM1ZmZlMzM1MjA0YjE0NTViZDFhMDp7InByb3ZlZWRvclByb2Nlc2FkbyI6ImFncmVnYWRvIiwiaWRfcHJvdmVlZG9yIjoiOTk5OTk5OTk5OTk5IiwiZm9ybV9kZXRhaWxzIjoyLCJfYXV0aF91c2VyX2hhc2giOiI4ZjEzNzA4YmIwNjIzZjNhOTQxMTU2NDExZDM1YzFmMGRmMjZkZDgwIiwiaWRfY2xpZW50IjoiMjYxNzgxNjQ4OSIsIl9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQifQ==', '2016-02-26 01:10:56'),
 ('wosxyx616g6oh64vto1vw0zyu2jh7qlv', 'MWQyNjRmODY5NWVhNDQzMjhjYzM1MDhiNjFhZDIwNWZhZmFlMTQ0Yzp7Il9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIiwiX2F1dGhfdXNlcl9oYXNoIjoiOGYxMzcwOGJiMDYyM2YzYTk0MTE1NjQxMWQzNWMxZjBkZjI2ZGQ4MCIsIl9hdXRoX3VzZXJfaWQiOiIxIn0=', '2019-09-02 21:53:18'),
+('wv3qswmcc38i1scmgxjcf937etilnhdl', '.eJxVjLEOgzAQQ__l5ioiAZILY_d-A7rcJYW2AinAhPj3BomhXSzZz_YOPW3r0G9LzP0o0AHC7TcLxO84nUBeND1nxfO05jGos6IuuqjHLPFzv7p_BwMtQ1n7ytsojLpFqgI679CIaWpMyZPFxA1JsCZViciy00V19MVzLdEQlVOmvEK3QwudPo4vWkI80A:1r6EdN:eFgTh1x3qZFVQKOCA3otam4dhPnC4dQcPvUkZm3mipo', '2023-12-07 18:41:05'),
 ('x1twckj08dv179x171vzmybf7ej7teht', 'Mjc2ZWE3NWU4MTExMTdhNzAwMThhOGQ5NGJiZDgzZDZjYjc5MDI1MDp7Il9hdXRoX3VzZXJfaWQiOiI0IiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiIyNTJjYTNmNjRkZGNhMWRlNzQxMjNiMGFjYWEzNGU4YWYxOGFiY2MyIn0=', '2019-09-08 22:45:00'),
 ('x39v3a2d72q7yc4r3bnimfnkh3pcd14f', 'NDdhY2ZiODAzMWFkMzY3MWRlYzdkM2Y2Y2NmM2FmNWM5MjY5NDRmYzp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiI4ZjEzNzA4YmIwNjIzZjNhOTQxMTU2NDExZDM1YzFmMGRmMjZkZDgwIn0=', '2016-02-25 18:47:01'),
 ('x3fz9c61mppb2m4tttirqi0y5p384ngu', 'YmU4Y2I2ODQwYmJiNWRiNzQ4NzRiMjJiMTllM2Q1NDZhNTc2NjZkYTp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiaWRfY2xpZW50IjoiMjYxNzgxNTQiLCJfYXV0aF91c2VyX2hhc2giOiI4ZjEzNzA4YmIwNjIzZjNhOTQxMTU2NDExZDM1YzFmMGRmMjZkZDgwIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJmb3JtX2RldGFpbHMiOjF9', '2016-02-25 18:45:50'),
 ('x60u3554mx4xirls2b5yq6zlm9aoou1w', 'NDdhY2ZiODAzMWFkMzY3MWRlYzdkM2Y2Y2NmM2FmNWM5MjY5NDRmYzp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9iYWNrZW5kIjoiZGphbmdvLmNvbnRyaWIuYXV0aC5iYWNrZW5kcy5Nb2RlbEJhY2tlbmQiLCJfYXV0aF91c2VyX2hhc2giOiI4ZjEzNzA4YmIwNjIzZjNhOTQxMTU2NDExZDM1YzFmMGRmMjZkZDgwIn0=', '2019-05-11 20:34:10'),
+('x9z5tzj0e4cplbu9ppun8en8357f89up', '.eJxVjMEOwiAQRP-FsyFAKywevfsNZNkFqRpISnsy_rtt0oNeJpl5M_MWAdelhLWnOUwsLgLE6TeLSM9Ud8APrPcmqdVlnqLcK_KgXd4ap9f16P4dFOxlW3vlbWICfQZUEZx3YNiMA-Ts0UKmETlak1VGtOT0pjr5zdPAySCKzxfqDzig:1r7oLR:hoRLlI46CuNGapEVP31hnSd6EzLBXLYism9OjGUIZdY', '2023-12-12 03:01:05'),
 ('xb96oba1skhbqokq764ngc8roucuul2m', 'YjRiM2Q1YjhiOGE4NWJlYjQ5OGM3Mzc0OGNmNzYyZDI2YTJhYjcyODp7ImlkX2NsaWVudCI6IjI2MTc4MTU0IiwiZm9ybV9kZXRhaWxzIjoyLCJfYXV0aF91c2VyX2JhY2tlbmQiOiJkamFuZ28uY29udHJpYi5hdXRoLmJhY2tlbmRzLk1vZGVsQmFja2VuZCIsIl9hdXRoX3VzZXJfaGFzaCI6IjhmMTM3MDhiYjA2MjNmM2E5NDExNTY0MTFkMzVjMWYwZGYyNmRkODAiLCJfYXV0aF91c2VyX2lkIjoiMSJ9', '2016-02-25 16:33:04'),
 ('xid17r308dvgzsa0kf1hnkwxmmutyoc9', 'NzI0YTVlMzEzZjQ5MmI1YjY1MzljOTMzY2FkZTMwN2NiOGY2ZGJlYjp7Il9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIiwiX2F1dGhfdXNlcl9pZCI6IjEiLCJmb3JtX2RldGFpbHMiOjEsIl9hdXRoX3VzZXJfaGFzaCI6IjhmMTM3MDhiYjA2MjNmM2E5NDExNTY0MTFkMzVjMWYwZGYyNmRkODAiLCJpZF9jbGllbnQiOiIyNjE3ODE1NCJ9', '2016-02-25 20:13:15'),
 ('y2ljpyfbtpl8cx76hp9bz7k89xi2rvrc', 'NTgyMTc2ZjAyYTI0OGYyMWE3ODRiZGYzYTRhNWM0M2QxMjQwZGI2Zjp7Il9hdXRoX3VzZXJfaWQiOiIxIiwiX2F1dGhfdXNlcl9oYXNoIjoiOGYxMzcwOGJiMDYyM2YzYTk0MTE1NjQxMWQzNWMxZjBkZjI2ZGQ4MCIsIl9hdXRoX3VzZXJfYmFja2VuZCI6ImRqYW5nby5jb250cmliLmF1dGguYmFja2VuZHMuTW9kZWxCYWNrZW5kIn0=', '2016-02-25 16:31:42'),
@@ -446,7 +455,10 @@ CREATE TABLE `inventario_categoria` (
 
 INSERT INTO `inventario_categoria` (`id`, `nombre`, `descripcion`) VALUES
 (5, 'meow', 'plop'),
-(6, 'Gaseosas', 'coca cola');
+(6, 'Gaseosas', 'coca cola'),
+(7, 'Galletitas', ''),
+(8, 'Pastas', ''),
+(9, 'Fiambres', '');
 
 -- --------------------------------------------------------
 
@@ -592,19 +604,26 @@ CREATE TABLE `inventario_producto` (
   `fecha_introduccion` date NOT NULL,
   `fecha_vencimiento` date NOT NULL,
   `categoria_id` bigint(20) NOT NULL,
-  `imagen_codigo` varchar(100) DEFAULT NULL,
   `precio_maximo` decimal(10,2) NOT NULL,
-  `precio_minimo` decimal(10,2) NOT NULL
+  `precio_minimo` decimal(10,2) NOT NULL,
+  `imagen_codigo_qr` varchar(100) DEFAULT NULL,
+  `imagen_producto` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 --
 -- Volcado de datos para la tabla `inventario_producto`
 --
 
-INSERT INTO `inventario_producto` (`id`, `descripcion`, `precio`, `disponible`, `tiene_iva`, `tipo`, `codigo_barra`, `fecha_introduccion`, `fecha_vencimiento`, `categoria_id`, `imagen_codigo`, `precio_maximo`, `precio_minimo`) VALUES
-(5, 'Yerba Marolio 1kg', '2311', 1, '1', '1', '', '2023-11-20', '2023-11-27', 5, 'codigos/OIG.jpeg', 32321.00, 1221.00),
-(6, 'Leche Sancor 1 L', '789', 2, '1', '1', '', '2023-11-21', '2023-11-21', 5, 'codigos/OIG.png', 0.00, 0.00),
-(8, 'Galletitas Oreo', '450', 28, '0', '1', '', '2023-11-22', '2024-11-22', 5, 'codigos/OIG.png', 0.00, 0.00);
+INSERT INTO `inventario_producto` (`id`, `descripcion`, `precio`, `disponible`, `tiene_iva`, `tipo`, `codigo_barra`, `fecha_introduccion`, `fecha_vencimiento`, `categoria_id`, `precio_maximo`, `precio_minimo`, `imagen_codigo_qr`, `imagen_producto`) VALUES
+(5, 'Yerba Marolio 1kg', '2311', 4, '1', '1', '', '2023-11-20', '2023-11-27', 5, 32321.00, 1221.00, 'codigos_qr/qr__cD98oCl.png', ''),
+(6, 'Leche Sancor 1 L', '789', 7, '1', '1', '', '2023-11-21', '2023-11-21', 5, 0.00, 0.00, NULL, NULL),
+(8, 'Galletitas Oreo', '450', 12, '1', '1', '', '2023-11-22', '2024-11-22', 5, 0.00, 0.00, 'codigos_qr/qr__QYaFCVG.png', ''),
+(9, 'vitina clasica', '750', 24, '0', '1', '', '2023-11-27', '2024-03-22', 7, 816.00, 715.00, 'codigos_qr/qr_.png', NULL),
+(10, 'Saladix sabor jamón', '560', 24, '1', '1', '', '2023-11-27', '2024-03-22', 7, 0.00, 0.00, 'codigos_qr/qr__d6kYBuI.png', 'imagenes_productos/1701057987977179033568820724801.jpg'),
+(11, 'Reloj Huawei banda 4 pro', '32620', 7, '1', '1', '', '2023-11-27', '2023-11-27', 5, 0.00, 0.00, 'codigos_qr/qr__8M5a16i.png', 'imagenes_productos/17010642454566247550627667185605.jpg'),
+(15, 'curitas', '200', 56, '0', '1', '7702003010750', '2023-11-27', '2023-11-27', 5, 0.00, 0.00, 'codigos_qr/qr_7702003010750.png', 'imagenes_productos/1701069418745967650860341409931.jpg'),
+(16, 'barritas de azufre Aireon', '500', 50, '1', '1', '7797138090012', '2023-11-27', '2023-11-27', 5, 0.00, 0.00, 'codigos_qr/qr_7797138090012_8bQiG2R.png', 'imagenes_productos/17011269510615388667738632951446.jpg'),
+(17, 'turrón con maní Arcor', '200', 60, '1', '1', '77940131', '2023-11-27', '2023-11-27', 7, 0.00, 0.00, 'codigos_qr/qr_77940131_xD3cftH.png', 'imagenes_productos/17011284948951856756250233134931.jpg');
 
 -- --------------------------------------------------------
 
@@ -652,8 +671,9 @@ CREATE TABLE `inventario_usuario` (
 
 INSERT INTO `inventario_usuario` (`id`, `last_login`, `is_superuser`, `is_staff`, `is_active`, `date_joined`, `username`, `password`, `email`, `first_name`, `last_name`, `nivel`) VALUES
 (1, '2020-06-09 18:59:58', 1, 1, 1, '2019-03-14 15:29:13', 'superadmin', 'pbkdf2_sha256$120000$9mjuMUsIvrio$lJNJ4AP1AqLGh9z4lTV+NsIaXAuEt5A4Pjc48DUsXa8=', 'correo@correo.com', 'Nombre-Aleatorio', 'Apellido-Aleatorio', 2),
-(8, '2023-11-16 22:43:07', 1, 1, 1, '2020-06-09 21:07:40', 'admin', 'pbkdf2_sha256$600000$9psEcPr0qhbrPxs2Vi7VHI$edZ3MbSvibpof9oVG5bpGuhUUcrd7pcM9FfQYBy7uJQ=', 'correocualquiera@correo.com', 'nombre', 'apellido', 1),
-(9, NULL, 1, 1, 1, '2023-11-16 22:57:14', 'carancho', 'plop', 'mine@hotmail.com', 'Enrique', 'Estes', 1);
+(8, '2023-11-28 03:01:05', 1, 1, 1, '2020-06-09 21:07:40', 'admin', 'pbkdf2_sha256$600000$9psEcPr0qhbrPxs2Vi7VHI$edZ3MbSvibpof9oVG5bpGuhUUcrd7pcM9FfQYBy7uJQ=', 'correocualquiera@correo.com', 'nombre', 'apellido', 1),
+(9, NULL, 1, 1, 1, '2023-11-16 22:57:14', 'carancho', 'plop', 'mine@hotmail.com', 'Enrique', 'Estes', 1),
+(10, '2023-11-23 22:45:47', 0, 0, 1, '2023-11-23 22:28:42', 'brinasan', 'pbkdf2_sha256$600000$xj3jH6ulGtdiRKzGQb2kg4$PB7W5yk5vY5BjC4ystMua5W0DYfP0BkM6FaJtJD0CmE=', 'correoloco@correo', 'sabrina', 'DP', 0);
 
 -- --------------------------------------------------------
 
@@ -890,7 +910,7 @@ ALTER TABLE `django_content_type`
 -- AUTO_INCREMENT de la tabla `django_migrations`
 --
 ALTER TABLE `django_migrations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT de la tabla `inventario_cart`
@@ -908,7 +928,7 @@ ALTER TABLE `inventario_cartitem`
 -- AUTO_INCREMENT de la tabla `inventario_categoria`
 --
 ALTER TABLE `inventario_categoria`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT de la tabla `inventario_cliente`
@@ -962,7 +982,7 @@ ALTER TABLE `inventario_precioscraping`
 -- AUTO_INCREMENT de la tabla `inventario_producto`
 --
 ALTER TABLE `inventario_producto`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT de la tabla `inventario_proveedor`
@@ -974,7 +994,7 @@ ALTER TABLE `inventario_proveedor`
 -- AUTO_INCREMENT de la tabla `inventario_usuario`
 --
 ALTER TABLE `inventario_usuario`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT de la tabla `inventario_usuario_groups`
