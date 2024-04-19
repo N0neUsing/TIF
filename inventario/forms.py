@@ -35,6 +35,7 @@ class ProductoFormulario(forms.ModelForm):
         min_value=0,
         label='Precio',
         widget=forms.NumberInput(attrs={'placeholder': 'Precio del producto', 'id': 'precio', 'class': 'form-control'}),
+        required=False
     )
     fecha_vencimiento = forms.DateField(
         initial=timezone.now,
@@ -59,21 +60,15 @@ class ProductoFormulario(forms.ModelForm):
     
     class Meta:
         model = Producto
-        fields = ['descripcion', 'precio', 'tipo', 'tiene_iva', 'categoria', 'precio_minimo', 'precio_maximo', 'fecha_vencimiento', 'imagen_codigo', 'disponible', 'imagen_producto', 'codigo_barra']
+        fields = ['descripcion', 'precio', 'tipo', 'categoria', 'fecha_vencimiento', 'imagen_codigo', 'disponible', 'imagen_producto', 'codigo_barra']
         labels = {
             'descripcion': 'Nombre',
-            'tiene_iva': 'Incluye IVA?',
             'categoria': 'Categoría',
-            'precio_minimo': 'Precio Mínimo',
-            'precio_maximo': 'Precio Máximo'
         }
         widgets = {
             'descripcion': forms.TextInput(attrs={'placeholder': 'Nombre del producto', 'id': 'descripcion', 'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-control', 'id': 'tipo'}),
             'categoria': forms.Select(attrs={'class': 'form-control', 'id': 'categoria'}),
-            'precio_minimo': forms.NumberInput(attrs={'placeholder': 'Precio Mínimo', 'class': 'form-control', 'min': '0'}),
-            'precio_maximo': forms.NumberInput(attrs={'placeholder': 'Precio Máximo', 'class': 'form-control', 'min': '0'}),
-            'tiene_iva': forms.CheckboxInput(attrs={'class': 'checkbox rounded', 'id': 'tiene_iva'})
         }
 
 class ImportarProductosFormulario(forms.Form):
@@ -430,11 +425,6 @@ class OpcionesFormulario(forms.Form):
         'id':'moneda','class':'form-control'}),
         )
 
-    valor_iva = forms.DecimalField(
-        label="Valor del IVA",
-        min_value=0,widget=forms.NumberInput(
-            attrs={'placeholder': 'Introduzca el IVA actual',
-            'class':'form-control','id':'valor_iva'}))
 
     mensaje_factura = forms.CharField(
         label = 'Mensaje personal que va en las facturas',

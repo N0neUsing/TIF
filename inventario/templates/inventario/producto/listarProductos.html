@@ -1,5 +1,5 @@
 {% extends "inventario/comun/base.html" %}
-{% load my_filters %}  <!-- Cargamos la biblioteca humanize para usar timesince -->
+{% load my_filters %}
 
 {% block content %}
 <article class="content responsive-tables-page">
@@ -10,12 +10,18 @@
     <section class="section">
         <div class="row">
             <div class="col-md-12">
+                <div class="action-buttons">
+                    <button id="btn-scan-product-list" class="btn btn-primary" data-toggle="modal" data-target="#scanModalListar">Escanear Producto</button>
+                    <a href="{% url 'inventario:agregarProducto' %}" class="btn btn-success">Agregar Producto</a>
+                    <a href="{% url 'inventario:cart' %}" class="btn btn-warning">Carrito</a>
+                </div>
+
                 {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-success" role="alert">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
+                {% for message in messages %}
+                <div class="alert alert-success" role="alert">
+                    {{ message }}
+                </div>
+                {% endfor %}
                 {% endif %}
                 <div class="card">
                     <div class="card-block">
@@ -27,70 +33,53 @@
                                 <table id="example2" class="table table-striped table-bordered table-hover">
                                     <thead>
                                         <tr>
-                                            <th>Acción</th>
+                                            <th>Acciones</th>
                                             <th>Imagen del Producto</th>
-                                            <th>Item</th>
                                             <th>Nombre</th>
                                             <th>Precio</th>
-                                            <th>Disponible</th>
-                                            <th>Tipo</th>
+                                            <th>Cantidad</th>
                                             <th>Fecha Introducción</th>
                                             <th>Fecha Vencimiento</th>
                                             <th>Categoría</th>
                                             <th>Código de Barra</th>
-                                            <th>QR</th>
-                                            <th>Opciones</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        
                                         {% for producto in tabla %}
-                                            <tr>
-                                                <td>
-                                                    <button id="add-button-{{ producto.id }}" onclick="addToCart({{ producto.id }})">Agregar al Carrito</button>
-                                                </td>
-                                                <td>
-                                                    {% if producto.imagen_producto %}
-                                                        <img src="{{ producto.imagen_producto.url }}" alt="{{ producto.descripcion }}" class="expand-on-hover" height="50">
-                                                    {% else %}
-                                                        Sin Imagen
-                                                    {% endif %}
-                                                </td>
-                                                <td>{{ producto.id }}</td>
-                                                <td>{{ producto.descripcion }}</td>
-                                                <td>{{ producto.precio }}</td>
-                                                <td>{{ producto.disponible }}</td>
-                                                <td>{{ producto.get_tipo_display }}</td>
-                                                <td>{{ producto.fecha_introduccion|date:"d/m/Y" }}</td>
-                                                <td {% if producto.fecha_vencimiento|is_near_expiry %}style="color:red;"{% endif %}>
-                                                    {{ producto.fecha_vencimiento|date:"d/m/Y" }}
-                                                </td>
-                                                <td>{{ producto.categoria.nombre }}</td>
-                                                <td>{{ producto.codigo_barra }}</td>
-                                                <td>
-                                                    {% if producto.imagen_codigo_qr %}
-                                                        <img src="{{ producto.imagen_codigo_qr.url }}" alt="QR de {{ producto.descripcion }}" class="expand-on-hover" height="50">
-                                                    {% else %}
-                                                        Sin Código QR
-                                                    {% endif %}
-                                                </td>
-                                                <td>
-                                                    <td>
-                                                        <div class="btn-group">
-                                                            <!-- Botón para Editar -->
-                                                            <a href="{% url 'inventario:editar_producto' producto.id %}" class="btn btn-primary btn-sm">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
-                                                            <!-- Botón para Eliminar -->
-                                                            <button onclick="eliminarEntrada({{ producto.id }}, 'producto')" class="btn btn-danger btn-sm">
-                                                                <i class="fa fa-trash"></i>
-                                                            </button>
-                                                        </div>
-                                                    </td>
+                                        <tr>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <button class="btn btn-add-to-cart mr-1" data-product-id="{{ producto.id }}">
+                                                    <i class="fa fa-shopping-cart"></i></button>
+                                                    <a href="{% url 'inventario:editar_producto' producto.id %}" class="btn btn-primary btn-sm mr-1">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                    <button onclick="eliminarEntrada({{ producto.id }}, 'producto')" class="btn btn-danger btn-sm">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if producto.imagen_producto %}
+                                                <img src="{{ producto.imagen_producto.url }}" loading="lazy" alt="{{ producto.descripcion }}" class="expand-on-hover" height="50">
+                                                {% else %}
+                                                Sin Imagen
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ producto.descripcion }}</td>
+                                            <td>{{ producto.precio }}</td>
+                                            <td>{{ producto.disponible }}</td>
+                                            <td>{{ producto.fecha_introduccion|date:"d/m/Y" }}</td>
+                                            <td {% if producto.fecha_vencimiento|is_near_expiry %}style="color:red;"{% endif %}>
+                                                {{ producto.fecha_vencimiento|date:"d/m/Y" }}
+                                            </td>
+                                            <td>{{ producto.categoria.nombre }}</td>
+                                            <td>{{ producto.codigo_barra }}</td>
+                                        </tr>
                                         {% empty %}
-                                            <tr>
-                                                <td colspan="15">No hay productos disponibles.</td>
-                                            </tr>
+                                        <tr>
+                                            <td colspan="10">No hay productos disponibles.</td>
+                                        </tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
@@ -102,85 +91,4 @@
         </div>
     </section>
 </article>
-<script>
-    // Eliminar el mensaje después de 5 segundos
-    setTimeout(function() {
-        $('.alert').fadeOut('slow');
-    }, 5000); // 5000 milisegundos = 5 segundos
-    function eliminarEntrada(idEntrada, modo) {
-        $("#confirm-modal").modal('show');
-        let borrar = document.getElementById('modal_borrar');
-        borrar.href = "/inventario/eliminar/" + modo + "/" + idEntrada;
-    }
-
-    function addToCart(productId) {
-    // Cambiar el aspecto del botón para indicar que está en proceso
-    let addButton = document.getElementById(`add-button-${productId}`);
-    addButton.disabled = true;
-    addButton.textContent = 'Agregando...';
-
-    fetch(`/inventario/agregar-a-carrito/${productId}/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCookie('csrftoken'),
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ product_id: productId })
-    })
-    .then(response => response.json())
-    .then(data => {
-        showAlert(data.message);
-        // Restablecer el botón a su estado original o indicar que se agregó
-        addButton.textContent = 'Agregado';
-        addButton.style.backgroundColor = '#4CAF50'; // Cambiar color
-        setTimeout(() => {
-            addButton.disabled = false;
-            addButton.textContent = 'Agregar al Carrito';
-            addButton.style.backgroundColor = ''; // Restablecer color
-        }, 2000); // Cambiar después de 2 segundos
-    });
-    }
-    
-
-
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
-    function showAlert(message) {
-    let alertBox = document.createElement('div');
-    alertBox.textContent = message;
-    // Agrega aquí más estilos o clases a alertBox si es necesario
-    document.body.appendChild(alertBox);
-
-    // Desvanecer el mensaje después de un tiempo
-    setTimeout(() => {
-        alertBox.remove();
-    }, 3000); // Desaparece después de 3 segundos
-    }
-
-    window.onload = function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const editedProductId = urlParams.get('edited');
-    if (editedProductId) {
-        const editedRow = document.getElementById(`product-row-${editedProductId}`);
-        if (editedRow) {
-            editedRow.style.backgroundColor = 'yellow';
-            setTimeout(() => { editedRow.style.backgroundColor = ''; }, 3000);
-        }
-    }
-    };
-   
-</script>
 {% endblock %}

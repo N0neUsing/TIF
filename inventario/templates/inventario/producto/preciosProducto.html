@@ -13,6 +13,13 @@
                         <div class="card-title-block">
                             <h3 class="title">Lista de precios</h3>
                         </div>
+
+                        <!-- Botón para actualizar todos los precios -->
+                        <form method="post" action="{% url 'inventario:preciosProducto' %}">
+                            {% csrf_token %}
+                            <button type="submit" name="actualizar_todos" class="btn btn-primary">Buscar Precios para Todos los Productos</button>
+                        </form>
+
                         <section class="example">
                             <div class="table-responsive">
                                 <table id="example2" class="table table-striped table-bordered table-hover">
@@ -26,6 +33,7 @@
                                             <th>Fecha de Actualización</th>
                                             <th>Diferencia con Precio Sugerido</th>
                                             <th>Resultados de Búsqueda</th> <!-- Nueva columna para resultados de búsqueda -->
+                                            <th>Acción</th> <!-- Columna para botones de acción individual -->
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -36,18 +44,26 @@
                                                 <td>{{ precio.precio_minimo_scraping }}</td>
                                                 <td>{{ precio.precio_maximo_scraping }}</td>
                                                 <td>{{ precio.precio_sugerido }}</td>
-                                                <td>{{ precio.fecha_actualizacion | date:"d/m/Y" }}</td>
+                                                <td>{{ precio.ultima_actualizacion | date:"d/m/Y" }}</td>
                                                 <td>{{ precio.diferencia_precio }}</td>
                                                 <td>
-                                                    <!-- Mostrar resultados de la búsqueda -->
-                                                    {% for resultado in precio.resultados_busqueda.items %}
-                                                        <p>{{ resultado.title }}: {{ resultado.link }}</p>
-                                                    {% endfor %}
+                                                    {% for resultado in precio.resultados_busqueda %}
+                                                    <a href="{{ resultado.url }}" target="_blank">{{ resultado.texto_enlace }}</a> = {{ resultado.precio }}<br>
+                                                    {% endfor %}                                                
+                                                </td>
+                                                <!-- Botón para actualizar precio individual -->
+                                                <td>
+                                                    <form method="post" action="{% url 'inventario:preciosProducto' %}">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="producto_id" value="{{ precio.producto.id }}">
+                                                        <button type="submit" name="buscar_precios" class="btn btn-secondary">Buscar precio</button>
+                                                    </form>
+                                                    
                                                 </td>
                                             </tr>
                                         {% empty %}
                                             <tr>
-                                                <td colspan="8">No hay datos disponibles.</td>
+                                                <td colspan="9">No hay datos disponibles.</td>
                                             </tr>
                                         {% endfor %}
                                     </tbody>

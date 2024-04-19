@@ -55,19 +55,19 @@ class Producto(models.Model):
         #id
         decisiones =  [('1','Unidad'),('2','Kilo'),('3','Litro'),('4','Otros')]
         descripcion = models.CharField(max_length=40)
-        precio = models.DecimalField(max_digits=9, decimal_places=2)
+        precio = models.DecimalField(max_digits=9, decimal_places=2,null=True, blank=True)
         disponible = models.IntegerField(null=True)
         tipo = models.CharField(max_length=20, choices=decisiones)
-        tiene_iva = models.BooleanField(null=True)
         codigo_barra = models.CharField(max_length=100, null=True, blank=True)  # Nuevo campo
         fecha_introduccion = models.DateField(default=timezone.now)
         fecha_vencimiento = models.DateField(default=timezone.now)
         categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, default=1)
         precio_minimo = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
         precio_maximo = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-        codigo_barra = models.CharField(max_length=100, null=True, blank=True)
+        codigo_barra = models.CharField(max_length=100, null=True, blank=True, unique=True)
         imagen_codigo_qr = models.ImageField(upload_to='codigos_qr/', null=True, blank=True)
         imagen_producto = models.ImageField(upload_to='imagenes_productos/', null=True, blank=True)
+        ultima_actualizacion = models.DateTimeField(auto_now=True)
 
 
         def save(self, *args, **kwargs):
@@ -153,6 +153,8 @@ class PrecioScraping(models.Model):
     precio = models.DecimalField(max_digits=10, decimal_places=2)
     fuente = models.CharField(max_length=100)
     fecha_obtencion = models.DateTimeField(auto_now_add=True)
+    tienda_logo = models.URLField(max_length=255, null=True, blank=True)
+
 
     def __str__(self):
         return f"{self.producto} - {self.precio} ({self.fuente})"
@@ -322,4 +324,14 @@ class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
     product = models.ForeignKey(Producto, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
+#---------------------------------------------------------------------------------------    
+#------------------------------------VENTAS---------------------------------
+
+class Purchase(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Purchase {self.id} by {self.user.username} on {self.created_at}"
 #---------------------------------------------------------------------------------------    

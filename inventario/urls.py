@@ -18,7 +18,10 @@ path('importarProductos', views.ImportarProductos.as_view(), name='importarProdu
 path('exportarProductos', views.ExportarProductos.as_view(), name='exportarProductos'),
 path('escanear', views.EscanearProducto.as_view(), name='escanear_codigo'),
 path('editarProducto/<int:id>/', views.EditarProducto.as_view(), name='editar_producto'),
+path('editarProducto/<str:codigo_barra>/', views.EditarProducto.as_view(), name='editar_producto'),
 path('preciosProducto', views.PreciosProducto.as_view(), name='preciosProducto'),
+path('api/producto/<str:codigo_barra>/', views.ObtenerProductoPorCodigo.as_view(), name='obtener_producto_por_codigo'),
+
 
 path('listarProveedores', views.ListarProveedores.as_view(), name='listarProveedores'),
 path('agregarProveedor', views.AgregarProveedor.as_view(), name='agregarProveedor'),
@@ -64,14 +67,18 @@ path('categorias/eliminar/<int:id>/', views.eliminar_categoria, name='eliminar_c
 path('carrito/', views.CartView.as_view(), name='cart'),
 path('agregar-a-carrito/<int:product_id>/', views.AddToCartView.as_view(), name='add_to_cart'),
 path('actualizar-item-carrito/<int:product_id>/', views.UpdateCartItemView.as_view(), name='update_cart_item'),
-path('eliminar-de-carrito/<int:product_id>/', views.RemoveFromCart.as_view(), name='remove_from_cart'),
+path('eliminar-de-carrito/<int:product_id>/', views.RemoveFromCartView.as_view(), name='remove_from_cart'),
 path('checkout/', views.Checkout.as_view(), name='checkout'),
 path('agregar-producto-por-codigo/', views.AgregarProductoPorCodigo.as_view(), name='agregar_producto_por_codigo'),
+path('api/cart/', views.CartListCreateAPIView.as_view(), name='api_cart_list_create'),
+path('api/cart/items/', views.CartItemCreateAPIView.as_view(), name='api_cartitem_create'),
+
 
 
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

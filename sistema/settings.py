@@ -28,10 +28,20 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 # settings.py
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'Lax'  # Puedes cambiar a 'Strict' en producción si es necesario
 
-CSRF_TRUSTED_ORIGINS = ["https://premium-swine-vigorously.ngrok-free.app"]
+
+CSRF_TRUSTED_ORIGINS = ["https://sistema-delvalle-noneuser.loca.lt","192.168.0.116", "http://localhost:8000",]
+CORS_ALLOWED_ORIGINS = [
+    'https://sistema-delvalle-noneuser.loca.lt',
+    'http://localhost:8000',
+                        ]
 
 
+CSRF_COOKIE_SAMESITE = 'Lax'  # 'None' es necesario si tu sitio es accesible desde múltiples dominios
+SESSION_COOKIE_SAMESITE = 'Lax'  # Puedes usar 'Strict' o 'Lax' según tus necesidades
 
 # Application definition
 
@@ -43,6 +53,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'corsheaders',
+    'django_extensions',
     'django.contrib.humanize',
 ]
 
@@ -55,6 +68,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'sistema.urls'
@@ -138,9 +152,11 @@ STATICFILES_DIRS = [
 
 
 AUTH_USER_MODEL = 'inventario.Usuario' # modelo de usuario
-CSRF_TRUSTED_ORIGINS = ['https://premium-swine-vigorously.ngrok-free.app']
+CSRF_TRUSTED_ORIGINS = [    'https://sistema-delvalle-noneuser.loca.lt',
+                            'http://localhost:8000',]
 CORS_ORIGIN_WHITELIST = [
-    'https://premium-swine-vigorously.ngrok-free.app',
+        'https://sistema-delvalle-noneuser.loca.lt',
+        'http://localhost:8000',
 ]
 
 # Media files configuration
@@ -148,3 +164,28 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        '': {  # Esto capturará los logs de cualquier logger.
+            'handlers': ['console'],
+            'level': 'DEBUG',  # Puedes ajustar el nivel según sea necesario.
+            'propagate': False,
+        },
+    },
+}
+
+LOGIN_URL = '/inventario/login'
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    'https://sistema-delvalle-noneuser.loca.lt',
+    'http://localhost:8000',  # Ajusta esto a tu configuración
+]

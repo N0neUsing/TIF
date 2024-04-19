@@ -24,7 +24,7 @@
                     <div class="card-block">
                         <h3 class="title">Productos en el Carrito</h3>
                         <!-- Botón para iniciar el escaneo en carrito.html -->
-                        <button id="startScanButton" class="btn btn-primary" data-toggle="modal" data-target="#scanModal">Escanear Producto</button>
+                        <button id="startScanButton" class="btn btn-primary" data-toggle="modal" data-target="#scanModalCarrito">Escanear Producto</button>
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>
@@ -37,12 +37,12 @@
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="cart-items-container">
                                     {% for item in products %}
                                         <tr id="product-row-{{ item.product.id }}">
                                             <td>
                                                 {% if item.product.imagen_producto %}
-                                                    <img src="{{ item.product.imagen_producto.url }}" alt="{{ item.product.descripcion }}" class="expand-on-hover" height="50">
+                                                    <img src="{{ item.product.imagen_producto_url }}" alt="{{ item.product.descripcion }}" class="expand-on-hover" height="50">
                                                 {% else %}
                                                     Sin Imagen
                                                 {% endif %}
@@ -66,22 +66,17 @@
                                 </tbody>
                             </table>
                         </div>
-                        {% if products %}
-                            <div class="card-footer">
-                                <h4>Total: <span class="total-carrito">{{ total|floatformat:2 }}</span></h4>
-                                <form id="id-form-checkout" method="post" action="{% url 'inventario:checkout' %}">
+                            <div class="card-footer" id="checkout-footer">
+                                <h4>Total: <span class="total-carrito">$0.00</span></h4>
+                                <form method="post" action="{% url 'inventario:checkout' %}">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary">Finalizar Compra</button>
+                                    <button type="submit" class="btn btn-primary" id="finalize-purchase-button">Finalizar Compra</button>
                                 </form>
-                            </div>
-                        {% endif %}
+                            </div>                      
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
-</article>
-{% endblock %}
-{% block javascript %}
-<script src="{% static 'inventario/js/cart.js' %}"></script>
+        </section>
+    </article>
 {% endblock %}

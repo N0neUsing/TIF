@@ -1708,3 +1708,35 @@ $(".custom-file-input").on("change",function()
 	$(this).siblings(".custom-file-label").addClass("selected").html(fileName);
 });
 
+// Función para remover acentos
+function removeAccents(data) {
+	return data
+	  .normalize('NFD')
+	  .replace(/[\u0300-\u036f]/g, '');
+}
+  
+  // Plugin de búsqueda para DataTables
+  $.fn.dataTable.ext.type.search.string = function(data) {
+	return !data ?
+	  '' :
+	  typeof data === 'string' ?
+		removeAccents(data) :
+		data;
+  };
+  
+  $(document).ready(function() {
+	// Inicializa DataTables aquí
+	$('#tuTabla').DataTable({
+	  // opciones de configuración
+	});
+  
+	// Asegúrate de inicializar todas las tablas que necesites aquí
+  });
+  
+
+function eliminarEntrada(id, tipo) {
+	var url = '/inventario/eliminar/' + tipo + '/' + id;
+    if (confirm('¿Estás seguro de que quieres eliminar este elemento?')) {
+        window.location.href = url;
+    }
+}

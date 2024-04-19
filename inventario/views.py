@@ -1,7 +1,8 @@
 #renderiza las vistas al usuario
 from django.shortcuts import render, redirect, get_object_or_404
 # para redirigir a otras paginas
-from django.http import HttpResponseRedirect, HttpResponse,FileResponse
+from django.http import Http404, HttpResponseRedirect, HttpResponse,FileResponse
+from urllib.parse import quote as urlquote
 #el formulario de login
 from .forms import *
 # clase para crear vistas basadas en sub-clases
@@ -10,12 +11,15 @@ from django.views import View
 from django.contrib.auth import authenticate, login, logout
 #verifica si el usuario esta logeado
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import Categoria, Cart, CartItem
+from decimal import Decimal, getcontext, ROUND_HALF_UP
+from .models import Categoria, Cart, CartItem, Purchase
 from .forms import CategoriaForm
 from django.views.generic import ListView
 from .models import PrecioScraping
 from django.db.models import Min, Max
+import re
 import requests
+from bs4 import BeautifulSoup
 from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -24,6 +28,39 @@ from django.http import JsonResponse
 from django.urls import reverse
 import json
 from django.core.serializers.json import DjangoJSONEncoder
+from rest_framework import generics, serializers
+from .serializers import CartSerializer, CartItemSerializer
+from datetime import timedelta
+from django.utils import timezone
+from urllib.parse import urlparse
+import logging
+from .models import CartItem
+from PIL import Image, ExifTags
+import io
+from django.core.files.images import ImageFile
+from django.dispatch import receiver
+from django.db.models.signals import post_delete
+from django.core.files.base import ContentFile
+from django.core.files import File
+from django.core.files.uploadedfile import InMemoryUploadedFile
+import os
+from django.db import transaction
+from django.db.models import Max, F, OuterRef, Subquery
+from django.utils.timezone import now
+from reportlab.lib.pagesizes import landscape
+
+
+
+
+## S E L E N I U M ---------------------------------------------------
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+
+
 
 #modelos
 from .models import *
@@ -36,15 +73,90 @@ from django.contrib import messages
 #Ejecuta un comando en la terminal externa
 from django.core.management import call_command
 #procesa archivos en .json
-from django.core import serializers
+from django.core import serializers as core_serializers
 #permite acceder de manera mas facil a los ficheros
 from django.core.files.storage import FileSystemStorage
 
 
+
+
+#Globales------------------------------------------------------------------------#
+def obtener_nombre_dominio(url):
+    dominio = urlparse(url).netloc
+    if 'www.' in dominio:
+        dominio = dominio.replace('www.', '')
+    return dominio
+
+logger = logging.getLogger(__name__)
+
+
+#Fin de vista---------------------------------------------------------------------#        
+
+
+
+
 #Vistas endogenas.
 
+# Parte dedicada al manejo de imagenes--------------------------------------------#
+def compress_image(image_path, image_name, quality=50, max_size=(800, 800)):
+    image_temporary = Image.open(image_path)
+    image_temporary = rotate_image_based_on_exif(image_temporary)
+    output_io_stream = BytesIO()
+    image_temporary.thumbnail(max_size, Image.Resampling.LANCZOS)
+    image_temporary.save(output_io_stream, format='JPEG', quality=quality)
+    output_io_stream.seek(0)
+    return ContentFile(output_io_stream.read(), name=image_name)
 
-#Interfaz de inicio de sesion----------------------------------------------------#
+
+def comprimir_imagenes_productos():
+    productos = Producto.objects.all()
+    for producto in productos:
+        try:
+            if producto.imagen_producto:
+                nombre_imagen_original = producto.imagen_producto.name
+                nombre_imagen_sin_ruta = nombre_imagen_original.split('/')[-1]
+                if not nombre_imagen_sin_ruta.startswith('comprimido_'):
+                    output_io_stream = compress_image(producto.imagen_producto.path, nombre_imagen_sin_ruta)
+                    nuevo_nombre_imagen = f"comprimido_{nombre_imagen_sin_ruta}"
+                    producto.imagen_producto.delete(save=False)
+                    producto.imagen_producto.save(nuevo_nombre_imagen, File(output_io_stream), save=True)
+                    producto.save()
+        except FileNotFoundError:
+            print(f"El archivo {nombre_imagen_original} no fue encontrado y no se pudo comprimir.")
+
+
+@receiver(post_delete, sender=Producto)
+def eliminar_archivos_producto(sender, instance, **kwargs):
+    if instance.imagen_producto:
+        instance.imagen_producto.delete(save=False)
+    if instance.imagen_codigo_qr:
+        instance.imagen_codigo_qr.delete(save=False)
+
+def rotate_image_based_on_exif(image):
+    try:
+        exif = image._getexif()
+        if exif:
+            for orientation in ExifTags.TAGS.keys():
+                if ExifTags.TAGS[orientation] == 'Orientation':
+                    break
+
+            if orientation in exif:
+                if exif[orientation] == 3:
+                    image = image.rotate(180, expand=True)
+                elif exif[orientation] == 6:
+                    image = image.rotate(270, expand=True)
+                elif exif[orientation] == 8:
+                    image = image.rotate(90, expand=True)
+    except (AttributeError, KeyError, IndexError):
+        pass
+
+    return image
+
+
+
+#Fin de vista---------------------------------------------------------------------#        
+
+#Interfaz de inicio de sesion-----------------------------------------------------#
 class Login(View):
     #Si el usuario ya envio el formulario por metodo post
     def post(self,request):
@@ -348,7 +460,9 @@ class Eliminar(LoginRequiredMixin, View):
 
 #Fin de vista-------------------------------------------------------------------   
 
-
+#
+# Parte de Productos------------------------------------------------------------------
+#
 
 #Muestra una lista de 10 productos por pagina----------------------------------------#
 class ListarProductos(LoginRequiredMixin, View):
@@ -357,6 +471,7 @@ class ListarProductos(LoginRequiredMixin, View):
 
     def get(self, request):
         from django.db import models
+        comprimir_imagenes_productos()
 
         #Lista de productos de la BDD
         productos = Producto.objects.all()
@@ -370,23 +485,22 @@ class ListarProductos(LoginRequiredMixin, View):
 
 
 
-
-#Maneja y visualiza un formulario--------------------------------------------------#
 class AgregarProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def post(self, request):
         form = ProductoFormulario(request.POST, request.FILES)
-        print(form.is_valid())  # Debería imprimir True si el formulario es válido
         if form.is_valid():
-            print(form.cleaned_data)
-            prod = form.save(commit=False)
-            # prod.disponible ya está incluido en el formulario, no es necesario asignarlo manualmente
-            prod.save()
+            producto = form.save(commit=False)
+            if 'imagen_producto' in request.FILES:
+                imagen_producto = request.FILES['imagen_producto']
+                producto.imagen_producto = compress_image(imagen_producto, imagen_producto.name)
+            producto.save()
             messages.success(request, 'Producto agregado exitosamente.')
             return HttpResponseRedirect("/inventario/listarProductos")
         else:
+            messages.error(request, 'Por favor corrija los errores en el formulario.')
             return render(request, 'inventario/producto/agregarProducto.html', {'form': form})
 
     def get(self, request):
@@ -395,7 +509,7 @@ class AgregarProducto(LoginRequiredMixin, View):
         contexto = complementarContexto(contexto, request.user)
         return render(request, 'inventario/producto/agregarProducto.html', contexto)
     
-#Fin de vista------------------------------------------------------------------------# 
+
 
 
 
@@ -480,11 +594,26 @@ class EditarProducto(LoginRequiredMixin, View):
     def post(self, request, id):
         producto = get_object_or_404(Producto, pk=id)
         form = ProductoFormulario(request.POST, request.FILES, instance=producto)
+
         if form.is_valid():
-            form.save()
+            producto = form.save(commit=False)
+
+            if 'imagen_producto' in request.FILES:
+                imagen_producto = request.FILES['imagen_producto']
+                imagen_stream = compress_image(imagen_producto, f"comprimido_{imagen_producto.name}")  # Comprime la imagen
+                imagen_final = InMemoryUploadedFile(
+                    imagen_stream,  # Flujo de bytes
+                    field_name='imagen_producto',  # El nombre del campo en el modelo
+                    name=f"comprimido_{imagen_producto.name}",  # El nuevo nombre del archivo
+                    content_type=imagen_producto.content_type,  # El tipo de contenido
+                    size=imagen_stream.size,  # El tamaño del archivo (usa el atributo size)
+                    charset=None  # El conjunto de caracteres (no es necesario especificarlo para imágenes)
+                )
+                producto.imagen_producto = imagen_final
+
+            producto.save()
             messages.success(request, 'Producto actualizado exitosamente.')
-            url = reverse('inventario:listarProductos') + f'?edited={producto.id}'
-            return redirect(url)
+            return redirect('inventario:listarProductos')
         else:
             return render(request, 'inventario/producto/agregarProducto.html', {'form': form, 'editar': True})
 
@@ -493,7 +622,8 @@ class EditarProducto(LoginRequiredMixin, View):
         form = ProductoFormulario(instance=producto)
         return render(request, 'inventario/producto/agregarProducto.html', {'form': form, 'editar': True})
 
-#Fin de vista------------------------------------------------------------------------------------#      
+
+#Fin de vista------------------------------------------------------------------------------------#
 
 
 #Crea una lista de los clientes, 10 por pagina----------------------------------------#
@@ -1596,11 +1726,42 @@ class VerManualDeUsuario(LoginRequiredMixin, View):
 
 #Fin de vista--------------------------------------------------------------------------------
 
+##
+## E S C A N E O -----------------------------------------------------------------------------
+##
 class EscanearProducto(View):
     def get(self, request):
         # Aquí va la lógica para manejar la solicitud GET
         return render(request, 'inventario/producto/escanear_codigo.html')
     
+class ObtenerProductoPorCodigo(View):
+    def get(self, request, codigo_barra):
+        try:
+            producto = Producto.objects.get(codigo_barra=codigo_barra)
+            precio = float(producto.precio) if producto.precio is not None else None
+            data = {
+                'success': True,
+                'producto': {
+                    'id': producto.id,
+                    'descripcion': producto.descripcion,
+                    'precio': precio,  # Usar la variable precio que ya tiene la lógica adecuada
+                    'tipo': producto.get_tipo_display(),  # Retorna la representación en string del choice
+                    'disponible': producto.disponible,
+                    'fecha_vencimiento': producto.fecha_vencimiento.strftime('%Y-%m-%d'),  # Formateado como string
+                    'imagen': producto.imagen_producto.url if producto.imagen_producto else None
+                }
+            }
+        except Producto.DoesNotExist:
+            data = {
+                'success': False,
+                'message': 'Producto no encontrado.'
+            }
+        return JsonResponse(data)
+
+
+
+#Fin de vista--------------------------------------------------------------------------------
+
 
 #Accede a los modulos del manual de usuario---------------------------------------------#
 def lista_categorias(request):
@@ -1641,79 +1802,570 @@ def eliminar_categoria(request, id):
 #Parte dedicada a los precios----------------------------------------------------------------
 
 class PreciosProducto(View):
-    def get(self, request):
-        # Obtener todos los productos
+    
+    def get(self, request, *args, **kwargs):
         productos = Producto.objects.all()
-        # Margen de ganancia deseado
-        margen_ganancia = 1.20  # 20%
-        
-        # Tu clave de API de Google
-        google_api_key = 'AIzaSyBzryp6M5NgaZnLAUOIQ4_KJQNYC-PNNrU'
-
-        precios_context = []
-        for producto in productos:
-            precios_scraping = producto.precios_scraping.all().order_by('-fecha_obtencion')
-            precio_minimo_scraping = precios_scraping.aggregate(Min('precio'))['precio__min'] if precios_scraping else None
-            precio_maximo_scraping = precios_scraping.aggregate(Max('precio'))['precio__max'] if precios_scraping else None
-
-            precio_sugerido = precio_minimo_scraping * margen_ganancia if precio_minimo_scraping else None
-            
-            diferencia_precio = None
-            if precio_sugerido and producto.precio:
-                diferencia_precio = producto.precio - precio_sugerido
-
-            ultima_actualizacion = precios_scraping.first().fecha_obtencion if precios_scraping else None
-
-            # Realizar búsqueda de precios con la API de Google Custom Search
-            resultados_busqueda = self.buscar_precios(producto.descripcion, google_api_key)
-
-            precios_context.append({
-                'producto': producto,
-                'precio_minimo_scraping': precio_minimo_scraping,
-                'precio_maximo_scraping': precio_maximo_scraping,
-                'precio_sugerido': precio_sugerido,
-                'diferencia_precio': diferencia_precio,
-                'ultima_actualizacion': ultima_actualizacion,
-                'resultados_busqueda': resultados_busqueda, 
-            })
-
-            # Imprimir para depuración
-            print(f"Producto: {producto.descripcion}, Precio Min: {precio_minimo_scraping}, Precio Max: {precio_maximo_scraping}")
-
+        # Cambio importante: remover el argumento buscar_nuevos, asumiendo que por defecto no se buscan nuevos precios.
+        precios_context = self.cargar_precios_almacenados(productos)
         return render(request, 'inventario/producto/preciosProducto.html', {'precios_context': precios_context})
 
-    def buscar_precios(self, producto_nombre, api_key):
+
+
+    def buscar_precios(self, codigo_barra):
+        # Usar las claves API aquí para realizar la búsqueda
+        google_api_key = 'AIzaSyBzryp6M5NgaZnLAUOIQ4_KJQNYC-PNNrU'
+        google_cse_id = 'e6f1f66c7c2d541f5'
         url = "https://www.googleapis.com/customsearch/v1"
         parametros = {
-            'key': api_key,
-            'cx': 'e6f1f66c7c2d541f5',
-            'q': producto_nombre,
+            'key': google_api_key,
+            'cx': google_cse_id,
+            'q': f"\"{codigo_barra}\"",
+            'cr': 'countryAR',
+            'num': 10
         }
+        precios_resultados = []
         try:
             respuesta = requests.get(url, params=parametros)
             respuesta.raise_for_status()
-            return respuesta.json()
+            resultados_json = respuesta.json()
+
+            print("Resultados JSON:", resultados_json) #depuracion
+
+            if 'items' in resultados_json:
+                for item in resultados_json['items']:
+                    resultado_scrape = self.scrape_precio(item['link'], codigo_barra=codigo_barra)
+                    if resultado_scrape['precio'] != 'Precio no encontrado' and resultado_scrape['precio'] != 'Error al obtener precio':
+                        precios_resultados.append({
+                            'url': resultado_scrape['url'],
+                            'precio': resultado_scrape['precio']
+                        })
+            return precios_resultados
+
         except requests.RequestException as e:
-            print(f"Error al realizar la búsqueda: {e}")
-            return {}
+            logger.error(f"Error de solicitud al buscar precios para el código de barra {codigo_barra}: {e}")
+        except Exception as e:
+            logger.error(f"Error inesperado al buscar precios para el código de barra {codigo_barra}: {e}")
+        return precios_resultados
+        
+        
+        
+    def cargar_precios_almacenados(self, productos):
+        precios_context = []
+        for producto in productos:
+            precios_almacenados = PrecioScraping.objects.filter(producto=producto).order_by('-fecha_obtencion')
+            resultados_busqueda = [{
+                'texto_enlace': self.preparar_texto_enlace(precio.fuente),
+                'url': precio.fuente,  # La columna debe llamarse fuente en tu modelo
+                'precio': precio.precio
+            } for precio in precios_almacenados]
+            
+            if precios_almacenados.exists():
+                ultimo_precio = precios_almacenados.first()
+                precios_context.append({
+                    'producto': producto,
+                    'precio_minimo_scraping': ultimo_precio.precio,  # Ajusta según necesidad
+                    'precio_maximo_scraping': ultimo_precio.precio,  # Ajusta según necesidad
+                    'precio_sugerido': ultimo_precio.precio,  # Ajusta según necesidad
+                    'diferencia_precio': 0.0,  # Ajusta según necesidad
+                    'ultima_actualizacion': ultimo_precio.fecha_obtencion,
+                    'resultados_busqueda': resultados_busqueda
+                })
+            else:
+                precios_context.append({
+                    'producto': producto,
+                    'precio_minimo_scraping': 0.0,
+                    'precio_maximo_scraping': 0.0,
+                    'precio_sugerido': 0.0,
+                    'diferencia_precio': 0.0,
+                    'ultima_actualizacion': 'N/A',
+                    'resultados_busqueda': []
+                })
+        return precios_context
+
+    
+    def debe_actualizar(self, producto):
+        try:
+            ultima_actualizacion = PrecioScraping.objects.filter(producto=producto).latest('fecha_obtencion').fecha_obtencion
+            return timezone.now() >= ultima_actualizacion + timedelta(hours=5)
+        except PrecioScraping.DoesNotExist:
+            return True
+
+
+
+    def post(self, request, *args, **kwargs):
+        if 'buscar_precios' in request.POST:
+            producto_id = request.POST.get('producto_id')
+            producto = get_object_or_404(Producto, pk=producto_id)
+
+            if self.debe_actualizar(producto):
+                # Obtener y procesar precios desde Google
+                resultados_google = self.buscar_precios(producto.codigo_barra)
+                self.procesar_y_almacenar_resultados(producto, resultados_google)
+
+                # Obtener y procesar precios desde Pricely
+                resultado_pricely = self.scrape_precio_pricely(producto.codigo_barra)
+                if resultado_pricely.get('precios'):
+                    self.procesar_y_almacenar_resultado_pricely(producto, resultado_pricely)
+
+                # Obtener y procesar precios desde Averiguo
+                resultados_averiguo = self.scrape_precio_averiguo(producto.codigo_barra)
+                if resultados_averiguo.get('precios'):
+                    self.procesar_y_almacenar_precio_averiguo(producto, resultados_averiguo['precios'])
+
+            return redirect('inventario:preciosProducto')
+        elif 'actualizar_todos' in request.POST:
+            # Aquí podrías tener una lógica para actualizar todos los productos si es necesario
+            pass
+
+        # Si no se presionó 'buscar_precios', solo redireccionar
+        return redirect('inventario:preciosProducto')
+
+
+
+
+
+    def actualizar_precios_todos(self, productos):
+        for producto in productos:
+            if self.debe_actualizar(producto):
+                self.actualizar_precios_individual(producto)
+
+
+    def buscar_y_almacenar_precios_individual(self, producto_id):
+        producto = get_object_or_404(Producto, pk=producto_id)
+        resultados = self.buscar_precios(producto.codigo_barra)
+        logger.info(f"URLs y Precios scrapeados para el producto {producto.descripcion}: {resultados}")
+
+        precios_unicos = set((res['precio'], res['url']) for res in resultados if res['precio'] != 'Precio no encontrado')
+        precios = []
+
+        for precio, url in precios_unicos:
+            precio_limpio = self.limpiar_precio(precio)
+            if precio_limpio is not None and not PrecioScraping.objects.filter(producto=producto, precio=precio_limpio, fuente=url).exists():
+                PrecioScraping.objects.create(producto=producto, precio=precio_limpio, fuente=url)
+                precios.append(precio_limpio)
+
+        if precios:
+            producto.precio_minimo = min(precios)
+            producto.precio_maximo = max(precios)
+            producto.precio_sugerido = sum(precios) / len(precios)  # Precio sugerido como el promedio
+            producto.ultima_actualizacion = timezone.now()
+            producto.save()
+
+
+
+
+    def buscar_precios_individual(self, request, producto_id):
+        # Obtener el producto específico
+        producto = get_object_or_404(Producto, pk=producto_id)
+        resultados_busqueda = self.buscar_precios(producto.codigo_barra)
+        # Actualizar los precios del producto
+        self.actualizar_precios_producto(producto, resultados_busqueda)
+        # Redireccionar a la página de precios
+        return redirect('inventario:preciosProducto')  # Reemplaza 'inventario:preciosProducto' con el nombre real de tu URL
+
+    def buscar_precios_todos(self, request):
+        # Obtener todos los productos
+        productos = Producto.objects.all()
+        for producto in productos:
+            # Verificar si es hora de actualizar el producto
+            ultima_actualizacion = producto.precios_scraping.latest('fecha_obtencion').fecha_obtencion if producto.precios_scraping.exists() else timezone.now() - timedelta(hours=5)
+            if timezone.now() >= ultima_actualizacion + timedelta(hours=5):
+                resultados_busqueda = self.buscar_precios(producto.codigo_barra)
+                self.actualizar_precios_producto(producto, resultados_busqueda)
+        # Redireccionar a la página de precios
+        return redirect('inventario:preciosProducto')
+
+    def actualizar_precios_producto(self, producto, resultados_busqueda):
+        precios_validos = []
+        for res in resultados_busqueda:
+            precio = self.limpiar_precio(res['precio'])
+            if precio is not None:
+                precios_validos.append(precio)
+        
+        if precios_validos:
+            precio_minimo_scraping = min(precios_validos)
+            precio_maximo_scraping = max(precios_validos)
+            precio_sugerido = sum(precios_validos) / len(precios_validos)
+
+            # Actualizar o crear un objeto PrecioScraping con los precios encontrados
+            PrecioScraping.objects.create(
+                producto=producto,
+                precio=precio_minimo_scraping,  # Aquí asumimos que quieres guardar el precio mínimo
+                fuente='CSE',  # Asumimos una fuente genérica, modifica según sea necesario
+            )
+
+            # Actualizar los precios en el objeto Producto
+            producto.precio_minimo = precio_minimo_scraping
+            producto.precio_maximo = precio_maximo_scraping
+            producto.save()
+
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+    def extraer_precio_json(script_content):
+        try:
+            # Encontrar el inicio y el final del JSON basado en la función addAndDispatchEvent
+            inicio_json = script_content.find('addAndDispatchEvent') + len('addAndDispatchEvent')
+            inicio_json = script_content.find('{', inicio_json)
+            fin_json = script_content.find('});', inicio_json) + 1
+
+            # Extraer y cargar el JSON
+            json_text = script_content[inicio_json:fin_json]
+            data = json.loads(json_text)
+            precio = data['b']['f']
+
+            return precio
+        except Exception as e:
+            print(f"Error al extraer precio JSON: {e}")
+            return None
+
+
+
+
+    def _buscar_precio_en_clases_comunes(self, soup):
+        clases_comunes = ['price', 'product-price', 'sale-price']
+        for clase in clases_comunes:
+            precio_elemento = soup.find(class_=clase)
+            if precio_elemento:
+                return precio_elemento.get_text()
+        return None
+      
+         
+    def _buscar_precio_en_datos_estructurados(self, soup):
+        # Ejemplo suponiendo datos JSON-LD
+        script = soup.find('script', type='application/ld+json')
+        if script:
+            data = json.loads(script.string)
+            if 'offers' in data:
+                price = data['offers']['price']
+                return price
+        return None
+    
+    def _buscar_precio_en_scripts(self, soup, codigo_barra):
+        scripts = soup.find_all('script')
+        for script in scripts:
+            if codigo_barra in script.text:
+                matched = re.search(r'Precio: \$([\d\.,]+)', script.text)
+                if matched:
+                    return matched.group(1)
+        return None
+
+        
+
+    def procesar_y_almacenar_resultados(self, producto, resultados_scrapeados):
+        # Inicializa las listas de precios
+        precios = []
+        fuentes = []
+        try:
+            for resultado in resultados_scrapeados:
+                precio_limpiado = self.limpiar_precio(resultado['precio'])
+                if precio_limpiado:
+                    # Guarda cada precio limpio y su fuente en las listas
+                    precios.append(precio_limpiado)
+                    fuentes.append(resultado['url'])
+                    # Crea un registro de PrecioScraping para cada resultado
+                    PrecioScraping.objects.create(
+                        producto=producto, 
+                        precio=precio_limpiado, 
+                        fuente=resultado['url'],
+                        fecha_obtencion=timezone.now()
+                    )
+            # Si hay precios, actualiza el producto con el mínimo, máximo y promedio
+            if precios:
+                producto.precio_minimo = min(precios)
+                producto.precio_maximo = max(precios)
+                producto.precio_sugerido = sum(precios) / len(precios)
+                producto.ultima_actualizacion = timezone.now()
+                producto.save()
+            logger.info(f"Resultados procesados y almacenados para el producto {producto.descripcion}")
+        except Exception as e:
+            logger.error(f"Error al procesar y almacenar resultados para el producto {producto.descripcion}: {e}")
+
+
+    def actualizar_precios_individual(self, producto):
+        try:
+            if self.debe_actualizar(producto):
+                resultados_scrapeados = self.buscar_precios(producto.codigo_barra)
+                if resultados_scrapeados:
+                    self.procesar_y_almacenar_resultados(producto, resultados_scrapeados)
+                    # Actualizar fecha de última actualización
+                    producto.ultima_actualizacion = timezone.now()
+                    producto.save()
+        except Exception as e:
+            logger.error(f"Error al actualizar precios para el producto {producto.descripcion}: {e}")
+
+    
+
+    def procesar_y_almacenar_resultado_pricely(self, producto, resultado_pricely):
+        logger.debug(f"Procesando precios de Pricely para {producto.descripcion}")
+        today_min = now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_max = now().replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        if resultado_pricely.get('precios'):
+            for precio_info in resultado_pricely['precios']:
+                precio = precio_info['precio']
+                fuente = precio_info['tienda_url']
+                logo = precio_info['tienda_logo']  # URL del logotipo
+
+                if isinstance(precio, (int, float)) and precio > 0:
+                    exists = PrecioScraping.objects.filter(
+                        producto=producto,
+                        fuente=fuente,
+                        fecha_obtencion__range=(today_min, today_max)
+                    ).exists()
+
+                    if not exists:
+                        PrecioScraping.objects.create(
+                            producto=producto,
+                            precio=precio,
+                            fuente=fuente,
+                            tienda_logo=logo,  # Guardar URL del logo
+                            fecha_obtencion=timezone.now()
+                        )
+                        logger.debug(f"Precio {precio} guardado para {producto.descripcion} con logo {logo}")
+                    else:
+                        logger.info(f"Precio duplicado no guardado: {precio} para {producto.descripcion} de {fuente}")
+                else:
+                    logger.warning(f"Precio no válido {precio} encontrado para {producto.descripcion}")
+        else:
+            logger.warning(f"No se encontraron precios válidos para {producto.descripcion}")
+
+
+
+
+    def scrape_precio_pricely(self, codigo_barra):
+        url = f"https://pricely.ar/product/{codigo_barra}"
+        driver = None
+        try:
+            options = Options()
+            options.headless = True
+            driver = webdriver.Chrome(options=options)
+            driver.get(url)
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.gap-4.mt-4 a"))
+            )
+            precio_elements = driver.find_elements(By.CSS_SELECTOR, ".grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.gap-4.mt-4 a")
+            precios_info = []
+            
+            for elem in precio_elements:
+                tienda_nombre = elem.find_element(By.TAG_NAME, 'img').get_attribute('alt')
+                tienda_logo = elem.find_element(By.TAG_NAME, 'img').get_attribute('src')
+                tienda_url = elem.get_attribute('href')  # Aquí capturamos el enlace correcto
+                precio = self.limpiar_precio_pricely(elem.find_element(By.CSS_SELECTOR, '.font-display.text-zinc-700.text-2xl').text)
+                
+                if precio is not None:
+                    precios_info.append({
+                        'tienda_nombre': tienda_nombre,
+                        'tienda_logo': tienda_logo,
+                        'tienda_url': tienda_url,  # Incluimos la URL en la información
+                        'precio': precio
+                    })
+
+            if precios_info:
+                logger.info(f"Precios extraídos para {codigo_barra}: {precios_info}")
+                return {'precios': precios_info, 'url': url}
+            else:
+                logger.warning(f"No se encontraron precios válidos para el producto con código de barra: {codigo_barra}")
+
+        except Exception as e:
+            logger.error(f"Error al obtener precios desde {url}: {e}")
+        finally:
+            if driver:
+                driver.quit()
+        
+        return {'precios': [], 'url': url}
+
+
+    def limpiar_precio_pricely(self, precio_html):
+        try:
+            # Eliminar espacios, símbolos de moneda y comas que puedan ser usadas para miles
+            precio_texto = re.sub(r'[\s$,]', '', precio_html)
+
+            # Si el precio incluye punto seguido por dos o más ceros, considerarlos como decimales
+            if '.' in precio_texto and len(precio_texto.split('.')[1]) > 2:
+                # Eliminar el punto y manejarlo como un entero
+                precio_texto = precio_texto.replace('.', '')
+
+            # Convertir el texto a entero
+            precio_final = int(precio_texto)
+
+            # Ajustar el precio dividiendo por 100 si es demasiado grande
+            # Esto es para manejar casos donde el precio ha sido interpretado con dos ceros adicionales
+            if precio_final > 100000:  # Asumiendo que no esperas precios superiores a 1000 en formato normal
+                precio_final = precio_final / 100
+
+            return int(precio_final)  # Devolver como entero
+        except Exception as e:
+            logger.error(f"Error al limpiar precio de Pricely: {e}")
+            return None
+
+        
+    
+
+    def preparar_texto_enlace(self, url):
+        dominio = urlparse(url).netloc
+        # Elimina 'www.' si está presente, y toma solo la primera parte del dominio
+        nombre_legible = dominio.replace('www.', '').split('.')[0]
+        return nombre_legible
+
+    def get_precios_recientes():
+        # Primero, encuentra la fecha más reciente de obtención de precio para cada producto
+        precios_recent_dates = PrecioScraping.objects.filter(
+            producto_id=OuterRef('producto_id')
+        ).order_by('-fecha_obtencion').values('fecha_obtencion')[:1]
+
+        # Ahora, filtra los precios para obtener solo los más recientes
+        precios_recientes = PrecioScraping.objects.annotate(
+            fecha_reciente=Subquery(precios_recent_dates)
+        ).filter(fecha_obtencion=F('fecha_reciente'))
+
+        return precios_recientes
+
+    def vista_de_precios(request):
+        precios = get_precios_recientes()
+        # Pasa los precios a tu plantilla
+        return render(request, 'inventario/producto/preciosProducto.html', {'precios': precios})
+
+
+##
+## P R E C I O S - A V E R I G U O
+##
+
+    def scrape_precio_averiguo(self, codigo_barra):
+        url = f"https://averiguo.com.ar/productos?q={codigo_barra}&c=&b="
+        driver = None
+        try:
+            options = Options()
+            options.headless = True
+            driver = webdriver.Chrome(options=options)
+            driver.get(url)
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".card-body"))
+            )
+
+            product_cards = driver.find_elements(By.CSS_SELECTOR, ".card-body")
+            precios_info = []
+
+            for card in product_cards:
+                try:
+                    producto_url = card.find_element(By.CSS_SELECTOR, 'h2 a').get_attribute('href')
+                    producto_nombre = card.find_element(By.CSS_SELECTOR, 'h2 a').text
+                    precio_texto = card.find_element(By.CSS_SELECTOR, 'div.d-flex.justify-content-between.align-items-center.mt-3 span.text-dark').text
+                    tienda_logo = card.find_element(By.CSS_SELECTOR, 'img.avatar.avatar-sm.rounded-circle').get_attribute('src')
+                    precio = self.limpiar_precio_averiguo(precio_texto)
+
+
+                    precios_info.append({
+                        'producto_nombre': producto_nombre,
+                        'producto_url': f"https://averiguo.com.ar{producto_url}",
+                        'precio': precio,
+                        'tienda_logo': tienda_logo
+                    })
+                except NoSuchElementException as e:
+                    logging.error(f"Element not found: {e}")
+                    continue  # Si alguno de los elementos no se encuentra, continúa con el siguiente
+
+            if precios_info:
+                logging.info(f"Precios extraídos para {codigo_barra}: {precios_info}")
+                return {'precios': precios_info, 'url': url}
+            else:
+                logging.warning(f"No se encontraron precios válidos para el producto con código de barra: {codigo_barra}")
+
+        except Exception as e:
+            logging.error(f"Error al obtener precios desde {url}: {e}")
+        finally:
+            if driver:
+                driver.quit()
+
+        return {'precios': [], 'url': url}
+
+    
+    
+    def limpiar_precio_averiguo(self, precio_html):
+        try:
+            # Asegurarse de que el precio_html es un string
+            if not isinstance(precio_html, str):
+                precio_html = str(precio_html)
+
+            # Eliminar espacios y símbolos de moneda
+            precio_texto = re.sub(r'[\s$]', '', precio_html)
+
+            # Reemplazar comas por puntos si se usa como separador decimal
+            precio_texto = precio_texto.replace('.', '')  # Elimina el punto usado para los miles
+            precio_texto = precio_texto.replace(',', '.')  # Cambia la coma decimal por un punto
+
+            # Convertir a float y luego a int para obtener el valor entero correcto
+            precio_final = int(float(precio_texto))
+
+            # Corrección por si el precio es extremadamente alto
+            if precio_final > 100000:
+                precio_final /= 100
+
+            return precio_final
+
+        except Exception as e:
+            logging.error(f"Error al limpiar precio de Averiguo: {e}")
+            return None
+
+
+
+    def procesar_y_almacenar_precio_averiguo(self, producto, precios_info):
+        today_min = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_max = timezone.now().replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        for precio_info in precios_info:
+            precio = self.limpiar_precio_averiguo(precio_info['precio'])
+            fuente = precio_info['producto_url']
+            logo = precio_info['tienda_logo']
+            
+            if precio and precio > 0:
+                exists = PrecioScraping.objects.filter(
+                    producto=producto,
+                    fuente=fuente,
+                    fecha_obtencion__range=(today_min, today_max)
+                ).exists()
+                
+                if not exists:
+                    PrecioScraping.objects.create(
+                        producto=producto,
+                        precio=precio,
+                        fuente=fuente,
+                        tienda_logo=logo,
+                        fecha_obtencion=timezone.now()
+                    )
+                    logger.debug(f"Precio {precio} guardado para {producto.descripcion} con logo {logo}")
+                else:
+                    logger.info(f"Precio duplicado no guardado: {precio} para {producto.descripcion} de {fuente}")
+            else:
+                logger.warning(f"Precio no válido {precio} encontrado para {producto.descripcion}")
+
+
 
 
 
 #Fin de vista--------------------------------------------------------------------------------
 
 #Carrito de compras--------------------------------------------------------------------------
-class AddToCartView(View):
+
+
+class AddToCartView(LoginRequiredMixin, View):
     def post(self, request, product_id):
         product = get_object_or_404(Producto, id=product_id)
-        cart = request.session.get('cart', {})
-        quantity_in_cart = cart.get(str(product_id), 0)
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            product=product,
+            defaults={'quantity': 0}
+        )
 
-        if quantity_in_cart + 1 > product.disponible:
+        if cart_item.quantity + 1 > product.disponible:
             return JsonResponse({'success': False, 'message': f"No puedes agregar más de {product.disponible} unidades de {product.descripcion}."})
+        
+        cart_item.quantity += 1
+        cart_item.save()
 
-        cart[str(product_id)] = quantity_in_cart + 1
-        request.session['cart'] = cart
         return JsonResponse({'success': True, 'message': f'Producto {product.descripcion} agregado correctamente.'})
+
 
 
 class CartView(View):
@@ -1727,47 +2379,109 @@ class CartView(View):
             total += precio * int(quantity)
             products.append({'product': product, 'quantity': quantity})
         return render(request, 'inventario/producto/carrito.html', {'products': products, 'total': total})
+    
+class UpdateCartItemView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        print("Cuerpo de la solicitud recibido:", request.body)
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        print("Cuerpo de la solicitud:", body)  # Esto mostrará el cuerpo de la solicitud en la consola del servidor
 
-class UpdateCartItemView(View):
-    def post(self, request, product_id):
-        cart = request.session.get('cart', {})
-        product = get_object_or_404(Producto, id=product_id)
-        quantity = int(request.POST.get('quantity', 1))
+        if not request.user.is_authenticated:
+            logger.warning('Intento de actualización de carrito por usuario no autenticado.')
+            return JsonResponse({'success': False, 'message': 'Usuario no autenticado.'}, status=401)
 
-        if quantity > product.disponible:
-            return JsonResponse({'success': False, 'message': f"No puedes añadir más de {product.disponible} unidades de {product.descripcion}."})
-        
-        cart[product_id] = quantity
-        request.session['cart'] = cart
+        product_id = kwargs.get('product_id')
+        data = json.loads(request.body)
+        quantity = data.get('quantity')
+        logger.info(f'Actualizando carrito para el producto {product_id} con cantidad {quantity}.')
 
-        # Calcular el nuevo subtotal (o total si es necesario)
-        new_subtotal = product.precio * quantity  # Asegúrate de que esto sea una multiplicación matemática
-        return JsonResponse({'success': True, 'message': 'Cantidad actualizada.', 'new_subtotal': new_subtotal})
+        try:
+            cart_item = get_object_or_404(CartItem, product_id=product_id, cart__user=request.user)
+            cart_item.quantity = int(quantity)
+            cart_item.save()
+            new_subtotal = cart_item.quantity * cart_item.product.precio
+            logger.info(f'Carrito actualizado correctamente para el producto {product_id}. Nuevo subtotal: {new_subtotal}')
+            return JsonResponse({'success': True, 'message': 'Carrito actualizado.', 'new_subtotal': new_subtotal})
+        except Exception as e:
+            logger.error(f'Error al actualizar el carrito para el producto {product_id}: {str(e)}', exc_info=True)
+            return JsonResponse({'success': False, 'message': f'Error al actualizar el carrito: {str(e)}'}, status=500)
 
-class RemoveFromCart(View):
-    def get(self, request, product_id):
-        cart = request.session.get('cart', {})
-        cart.pop(str(product_id), None)
-        request.session['cart'] = cart
-        return redirect('inventario:cart')
+class RemoveFromCartView(View):
+    def get(self, request, *args, **kwargs):
+        product_id = self.kwargs.get('product_id')
+        try:
+            cart_item = CartItem.objects.get(product_id=product_id, cart__user=request.user)
+            cart_item.delete()
+            return JsonResponse({'success': True, 'message': 'Producto eliminado del carrito.'})
+        except CartItem.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Producto no encontrado en el carrito.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
 
 class Checkout(View):
     def post(self, request):
-        cart = request.session.get('cart', {})
-        for product_id, quantity in cart.items():
-            product = Producto.objects.get(id=product_id)
-            if quantity > product.disponible:
-                messages.error(request, f"No hay suficiente stock para {product.descripcion}.")
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        cart_items = CartItem.objects.filter(cart=cart)
+        if not cart_items:
+            messages.error(request, "Tu carrito está vacío.")
+            return redirect('inventario:cart')
+
+        # Preparar el buffer para el PDF con un tamaño adecuado para la impresora de 58 mm
+        pdf_buffer = BytesIO()
+        page_width = 164  # Ancho en puntos para 58 mm
+        page_height = 800  # Altura suficiente para el contenido del recibo
+        p = canvas.Canvas(pdf_buffer, pagesize=(page_width, page_height))
+        p.setFont("Helvetica", 8)  # Ajuste de la fuente para adaptarse al ancho estrecho
+
+        # Iniciar desde la parte superior del recibo
+        y = page_height - 20  # Comenzar desde un margen pequeño
+
+        # Encabezado del recibo
+        p.drawString(10, y, "4 Ases - Comprobante de Compra")
+        y -= 10  # Reducir el espacio entre líneas
+
+        total = 0
+        for item in cart_items:
+            if item.quantity > item.product.disponible:
+                messages.error(request, f"No hay suficiente stock para {item.product.descripcion}.")
                 return redirect('inventario:cart')
+            product = item.product
+            subtotal = item.quantity * product.precio
+            total += subtotal
 
-            product.disponible -= int(quantity)
-            product.save()
+            # Añadir descripción del producto al recibo
+            description = f"{product.descripcion[:30]}: {item.quantity} x ${product.precio:.2f} = ${subtotal:.2f}"
+            p.drawString(10, y, description)
+            y -= 10  # Continuar reduciendo el espacio entre líneas para más items
 
-        pdf = generate_pdf_receipt(cart)
-        request.session['cart'] = {}
-        response = HttpResponse(pdf, content_type='application/pdf')
-        response['Content-Disposition'] = 'attachment; filename="recibo.pdf"'
+        # Pie de página del recibo
+        p.drawString(10, y, "----------------------------------")
+        y -= 10
+        p.drawString(10, y, f"Total: ${total:.2f}")
+        y -= 10
+        p.drawString(10, y, f"Fecha de Emisión: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        y -= 10
+        p.drawString(10, y, "Gracias por Comprar en 4 Ases")
+        y -= 30
+        p.drawString(10, y, "----------------------------------")
+        # Finalizar la página y guardar el PDF en el buffer
+        p.showPage()
+        p.save()
+
+        pdf_buffer.seek(0)
+        cart_items.delete()  # Vaciar el carrito
+
+        purchase = Purchase.objects.create(user=request.user, total=total)  # Crear la compra
+        purchase_id = purchase.id
+
+        # Devolver el PDF como respuesta HTTP con nombre de archivo que incluye el ID de compra
+        response = HttpResponse(pdf_buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="recibo_{purchase_id}.pdf"'
         return response
+
 
 def generate_pdf_receipt(cart):
     buffer = BytesIO()
@@ -1791,26 +2505,23 @@ def generate_pdf_receipt(cart):
     buffer.seek(0)
     return buffer
 
-class AgregarProductoPorCodigo(View):
+class AgregarProductoPorCodigo(LoginRequiredMixin, View):
     def post(self, request):
         data = json.loads(request.body)
         codigo_barra = data.get('codigoBarra')
-
-        # Buscar el producto por su código de barras
         producto = get_object_or_404(Producto, codigo_barra=codigo_barra)
 
-        # Inicializar o obtener el carrito de compras
-        cart = request.session.get('cart', {})
-        
-        # Inicializar quantity_in_cart
-        quantity_in_cart = cart.get(str(producto.id), 0)
+        cart, created = Cart.objects.get_or_create(user=request.user, defaults={})
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            product=producto,
+            defaults={'quantity': 0})
 
-        if quantity_in_cart + 1 > producto.disponible:
+        if cart_item.quantity + 1 > producto.disponible:
             return JsonResponse({'success': False, 'message': f"No puedes agregar más de {producto.disponible} unidades de {producto.descripcion}."})
 
-        # Actualizar el carrito en la sesión
-        cart[str(producto.id)] = quantity_in_cart + 1
-        request.session['cart'] = cart
+        cart_item.quantity += 1
+        cart_item.save()
 
         return JsonResponse({
             'success': True,
@@ -1822,7 +2533,77 @@ class AgregarProductoPorCodigo(View):
                 'imagen': producto.imagen_producto.url if producto.imagen_producto else None
             }
         })
+    
+
+
+#---------API para carrito-----------------------------------------------------------------------------
+class GetCartItemsView(LoginRequiredMixin, generics.ListAPIView):
+    serializer_class = CartItemSerializer
+
+    def get_queryset(self):
+        """
+        Este método devuelve los ítems del carrito para el usuario actual.
+        """
+        user = self.request.user
+        cart, _ = Cart.objects.get_or_create(user=user, defaults={})
+        return CartItem.objects.filter(cart=cart)
+
+
+class CartItemSerializer(serializers.ModelSerializer):
+    imagen_producto_url = serializers.SerializerMethodField()
+    class Meta:
+        model = CartItem
+        fields = ['id', 'product', 'quantity', 'imagen_producto_url']
+    
+    def get_imagen_producto_url(self, obj):
+        request = self.context.get('request')
+        if obj.product.imagen_producto and hasattr(obj.product.imagen_producto, 'url'):
+            return request.build_absolute_uri(obj.product.imagen_producto.url)
+        return None
+
+    def get_serializer_context(self):
+        """
+        Asegúrate de incluir el request en el contexto del serializador para construir URLs completas.
+        """
+        return {'request': self.request}
+
+
+class CartListCreateAPIView(generics.ListCreateAPIView):
+    queryset = Cart.objects.all()
+    serializer_class = CartSerializer
+
+class CartItemCreateAPIView(generics.CreateAPIView):
+    queryset = CartItem.objects.all()
+    serializer_class = CartItemSerializer
+
+    def get(self, request, *args, **kwargs):
+        # Asume que un carrito ya existe. Considera manejar el caso donde el carrito no exista.
+        cart, _ = Cart.objects.get_or_create(user=request.user, defaults={})
+        cart_items = CartItem.objects.filter(cart=cart)
+
+
+        items = []
+        for item in cart_items:
+            # Construye la URL de la imagen si existe, de lo contrario, usa None
+            imagen_producto_url = None
+            if item.product.imagen_producto:
+                imagen_producto_url = request.build_absolute_uri(settings.MEDIA_URL + urlquote(item.product.imagen_producto.name))
+            
+            # Agrega la información del producto al listado de items
+            items.append({
+                'id': item.product.id,
+                'descripcion': item.product.descripcion,
+                'precio': item.product.precio,
+                'cantidad': item.quantity,
+                'subtotal': item.quantity * item.product.precio,
+                'imagen_producto': imagen_producto_url
+            })
+        
+        total = sum(item['subtotal'] for item in items)
+        
+        return JsonResponse({'items': items, 'total': total})
 
 
 
 #Fin de vista--------------------------------------------------------------------------------
+
