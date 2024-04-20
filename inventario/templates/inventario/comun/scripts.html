@@ -11,11 +11,18 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="{% static 'inventario/js/escaner.js' %}"></script>
 <script src="{% static 'inventario/js/cart.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+<script src="https://cdn.datatables.net/plug-ins/1.10.21/sorting/datetime-moment.js"></script>
+
+
 
 
 
 <script>
   $(document).ready(function() {
+    // Registrar el formato de fecha DD/MM/YYYY con DataTables para ordenar
+    $.fn.dataTable.moment('DD/MM/YYYY');
+
       // Inicializa DataTables en la primera tabla
       $('#example1').DataTable({
           'paging': true,
@@ -29,7 +36,7 @@
 
       // Inicializa DataTables en la segunda tabla
       $('#example2').DataTable({
-          'paging': true,
+          'paging': false,
           'lengthChange': true,
           'searching': true,
           'ordering': true,
@@ -55,3 +62,18 @@
       removeAccents(data) :
       data;
   };
+
+  window.onscroll = function() {
+    var scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    var tableOffset = document.querySelector('.sticky-table-header').offsetTop;
+    var table = document.querySelector('.table-responsive');
+
+    if (scrollPosition > tableOffset) {
+        table.style.position = 'fixed';
+        table.style.bottom = '0';
+    } else {
+        table.style.position = 'static';
+    }
+  };
+  
+</script>
