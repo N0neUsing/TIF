@@ -148,3 +148,68 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para mostrar precios -->
+<div class="modal fade" id="priceModal" tabindex="-1" role="dialog" aria-labelledby="priceModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="priceModalLabel">Precios del Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-product-price">Cargando precios...</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal de Impuestos -->
+<div class="modal fade" id="manageTaxesModal" tabindex="-1" role="dialog" aria-labelledby="manageTaxesModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manageTaxesModalLabel">Gestionar Impuestos</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Aquí puedes incluir el formulario para añadir/editar impuestos y la tabla de impuestos existentes -->
+                <form id="taxForm" novalidate>
+                    <div class="form-group">
+                        <label for="taxName">Nombre del Impuesto:</label>
+                        <input type="text" class="form-control" id="taxName" name="taxName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="taxRate">Tasa del Impuesto (%):</label>
+                        <input type="number" class="form-control" id="taxRate" name="taxRate" step="0.01" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Guardar Impuesto</button>
+                </form>
+                <hr>
+                <h6>Impuestos Existentes</h6>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Tasa (%)</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="taxTableBody">
+                        <!-- Los datos de los impuestos se cargarán aquí dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+

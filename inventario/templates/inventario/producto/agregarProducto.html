@@ -14,53 +14,115 @@
             <div class="col-md-12">
                 {% if messages %}
                     {% for message in messages %}
-                        <div class="card card-primary">
-                            <div class="card-header"> 
-                                <div class="header-block">
-                                    <em class="fa fa-check"></em>
-                                    <p class="title">{{ message }}</p>
-                                </div>
-                            </div>
+                        <div class="alert alert-primary" role="alert">
+                            {{ message }}
                         </div>
                     {% endfor %}
                 {% endif %}
-                <div class="card card-block sameheight-item">
-                    <form role="form" method="POST" enctype="multipart/form-data">
+                <div class="card">
+                    <form role="form" method="POST" enctype="multipart/form-data" class="form-card">
                         {% csrf_token %}
-                        {% for field in form %}
-                            {% if field.name != 'codigo_barra' and field.name != 'imagen_producto' %}
-                                <div class="form-group">
-                                    <label for="{{ field.name }}">{{ field.label }}</label>
-                                    {{ field }}
-                                    {% if field.errors %}
-                                        <div class="alert alert-danger">
-                                            {{ field.errors }}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            {% endif %}
-                        {% endfor %}
-                        <!-- Campos personalizados fuera de la iteración -->
-                        <div class="form-group">
-                            <button type="button" id="btn-scan-qr" data-toggle="modal" data-target="#modalScanner">
-                                Escanear Código
-                            </button>
-                            <div style="margin-left: 10px; display: inline-block;">
-                                Código escaneado: <input type="text" id="codigoBarra" name="codigo_barra" class="form-control" value="{{ form.codigo_barra.value }}">
-                            </div>
+                        <div class="card-body">
+                            {% for field in form %}
+                                {% if not field.is_hidden %}
+                                    <div class="form-group {% if field.errors %}has-error{% endif %}">
+                                        <label for="{{ field.id_for_label }}" class="control-label">{{ field.label }}</label>
+                                        {% if field.name == 'precio' %}
+                                            <div class="input-group">
+                                                {{ field }}
+                                                <div class="input-group-append">
+                                                    <button type="button" class="btn btn-outline-secondary" data-toggle="modal" data-target="#priceCalcModal">Calcular Precio</button>
+                                                </div>
+                                            </div>
+                                        {% elif field.name == 'codigo_barra' %}
+                                            <div class="input-group">
+                                                {{ field }}
+                                                <div class="input-group-append">
+                                                    <button type="button" id="btn-scan-qr" class="btn btn-outline-secondary" data-toggle="modal" data-target="#modalScanner">Escanear Código</button>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            {{ field }}
+                                        {% endif %}
+                                        {% if field.help_text %}
+                                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                                        {% endif %}
+                                        {% for error in field.errors %}
+                                            <div class="invalid-feedback">
+                                                {{ error }}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
                         </div>
-                        <div class="form-group">
-                            <label for="id_imagen_producto">Imagen del Producto:</label>
-                            <input type="file" class="form-control-file" id="id_imagen_producto" name="imagen_producto">
-                        </div>
-                        <div class="form-group">
+                        <div class="card-footer text-right">
                             <button type="submit" class="btn btn-primary">Ingresar</button>
                         </div>
-                        <div id="avisoRapido">Código escaneado</div>
                     </form>
                 </div>
             </div>
         </div>
     </section>
 </article>
+
+
+
+<!-- Modal para calcular el precio -->
+<div class="modal fade" id="priceCalcModal" tabindex="-1" role="dialog" aria-labelledby="priceCalcModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="priceCalcModalLabel">Calculadora de Precios</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="priceCalcForm">
+                    <div class="form-group">
+                        <label for="calculationMode">Modo de Cálculo:</label>
+                        <select id="calculationMode" class="form-control" onchange="toggleCalculationMode()">
+                            <option value="unit">Por Producto (unidades)</option>
+                            <option value="weight">Por Peso (gramos o mililitros)</option>
+                        </select>
+                    <div class="form-group" id="subtotalGroup">
+                        <label for="subtotal">Subtotal (antes de impuestos):</label>
+                        <input type="number" id="subtotal" class="form-control" required>
+                    </div>
+                    <div class="form-group" id="totalFinalGroup">
+                        <label for="totalFinal">Total Final (con impuestos):</label>
+                        <input type="number" id="totalFinal" class="form-control" required>
+                    </div>    
+                    </div>
+                    <div class="form-group" id="purchasePriceGroup">
+                        <label for="purchasePrice">Precio de Compra:</label>
+                        <input type="number" id="purchasePrice" class="form-control" required>
+                    </div>
+                    <div class="form-group" id="unitsGroup">
+                        <label for="units">Número de Unidades/Cantidad:</label>
+                        <input type="number" id="units" class="form-control" placeholder="Unidades o Peso en g/ml" required>
+                    </div>
+                    <div class="form-group" id="marginGroup">
+                        <label for="margin">Margen de Ganancia (%):</label>
+                        <input type="number" id="margin" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="calculatedPrice">Precio de Venta Calculado:</label>
+                        <input type="text" id="calculatedPrice" class="form-control" readonly>
+                        <label for="taxPercentage">Porcentaje de Impuesto:</label>
+                        <input type="text" id="taxPercentage" class="form-control" readonly>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="calculatePrice()">Calcular</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">Reiniciar</button>
+                <button type="button" class="btn btn-success" onclick="addPrice()">Agregar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

@@ -169,12 +169,12 @@
                 z-index: 100; /* Asegúrate de que sea superior a cualquier otro elemento en la tabla */
             }
 
-            .btn-add-to-cart {
+            .add-to-cart {
                 background-color: #ff9800; /* Color naranja para el botón */
                 color: white; /* Icono blanco */
             }
 
-            .btn-add-to-cart i {
+            .add-to-cart i {
                 margin-right: 0.3em; /* Espaciado entre ícono y texto si es necesario */
             }
 
@@ -246,6 +246,22 @@
                 background-color: white;
             }
 
+            .modal-content .table-responsive {
+                max-height: 400px; /* O el valor que prefieras */
+                overflow-y: auto; /* Permite desplazamiento vertical si es necesario */
+            }
+
+            .modal-content .table {
+                min-width: 100%; /* Se asegura de que la tabla ocupe al menos el ancho del modal */
+            }
+
+            .modal-content .table td, .modal-content .table th {
+                white-space: nowrap; /* Mantiene todo el contenido en una sola línea horizontalmente */
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 150px; /* O cualquier ancho que prefieras */
+            }
+            
         </style>
         
     </head>

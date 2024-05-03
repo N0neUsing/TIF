@@ -1,5 +1,6 @@
 from django import template
-from datetime import datetime, timedelta
+from datetime import datetime
+from decimal import Decimal
 
 register = template.Library()
 
@@ -25,6 +26,17 @@ def is_expiring_soon(expiry_date):
 def calculate_subtotal(price, quantity):
     return price * quantity
 
-@register.filter
+@register.filter(name='divide')
+def divide(value, arg):
+    try:
+        return float(value) / float(arg)
+    except (ValueError, ZeroDivisionError):
+        return None
+
+@register.filter(name='multiply')
 def multiply(value, arg):
-    return value * arg
+    if isinstance(value, Decimal) and isinstance(arg, (int, float, Decimal)):
+        # Convertir el argumento a Decimal si es necesario
+        factor = Decimal(str(arg))
+        return value * factor
+    return value  # O manejar el error como prefieras

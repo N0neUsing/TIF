@@ -31,12 +31,23 @@ class Usuario(AbstractUser):
             return int(self.objects.filter(is_superuser = False).count() )
 
 
+#-------------------------------- O P C I O N E S ------------------------------------------------
+
 class Opciones(models.Model):
     #id
     moneda = models.CharField(max_length=20, null=True)
     valor_iva = models.IntegerField(unique=True)   
     nombre_negocio = models.CharField(max_length=25,null=True)
     mensaje_factura = models.TextField(null=True)
+
+class Impuesto(models.Model):
+    nombre = models.CharField(max_length=100)
+    tasa = models.DecimalField(max_digits=5, decimal_places=2)  # Porcentaje del impuesto
+
+    def __str__(self):
+        return f"{self.nombre} ({self.tasa}%)"
+
+
 
 #---------------------------------------------------------------------------------------
 
@@ -49,6 +60,20 @@ class Categoria(models.Model):
         return self.nombre
 #---------------------------------------------------------------------------------------
 
+#------------------------------------------ T I P O --------------------------------------
+
+class TipoProducto(models.Model):
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'inventario_tipo'  # Especifica el nombre de la tabla existente
+
+    def __str__(self):
+        return self.nombre
+
+#------------------------------------------------------------------------------------------
+
 #-------------------------------PRODUCTO------------------------------------------------
 
 class Producto(models.Model):
@@ -57,7 +82,7 @@ class Producto(models.Model):
         descripcion = models.CharField(max_length=40)
         precio = models.DecimalField(max_digits=9, decimal_places=2,null=True, blank=True)
         disponible = models.IntegerField(null=True)
-        tipo = models.CharField(max_length=20, choices=decisiones)
+        tipo = models.ForeignKey(TipoProducto, on_delete=models.SET_NULL, null=True, blank=True)
         codigo_barra = models.CharField(max_length=100, null=True, blank=True)  # Nuevo campo
         fecha_introduccion = models.DateField(default=timezone.now)
         fecha_vencimiento = models.DateField(default=timezone.now)
@@ -145,6 +170,9 @@ class Producto(models.Model):
 
             return arreglo 
 #---------------------------------------------------------------------------------------
+
+
+
 
 
 #------------------------------------------PRECIOS--------------------------------------
@@ -329,9 +357,22 @@ class CartItem(models.Model):
 
 class Purchase(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    cart = models.ForeignKey('Cart', on_delete=models.CASCADE, null=True, blank=True)
     total = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
+    impuesto = models.ForeignKey(Impuesto, on_delete=models.SET_NULL, null=True)  # Añade este campo si es necesario
+
 
     def __str__(self):
         return f"Purchase {self.id} by {self.user.username} on {self.created_at}"
+
+class PurchaseItem(models.Model):
+    purchase = models.ForeignKey(Purchase, related_name='purchase_items', on_delete=models.CASCADE)
+    product = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.quantity} de {self.product.descripcion} en la compra {self.purchase.id}"
+
 #---------------------------------------------------------------------------------------    

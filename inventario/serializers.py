@@ -4,10 +4,12 @@ from .models import Cart, CartItem, Producto
 
 class ProductoSerializer(serializers.ModelSerializer):
     imagen_producto_url = serializers.SerializerMethodField()
+    tipo_nombre = serializers.CharField(source='tipo.nombre', read_only=True)  # Asume que 'tipo' es una relación ForeignKey
+
 
     class Meta:
         model = Producto
-        fields = ['id', 'descripcion', 'precio', 'imagen_producto_url']  # Incluye el nuevo campo imagen_producto_url
+        fields = ['id', 'descripcion', 'precio', 'imagen_producto_url', 'tipo_nombre']  # Incluye el nuevo campo 'tipo_nombre'
 
     def get_imagen_producto_url(self, obj):
         request = self.context.get('request')

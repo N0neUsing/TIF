@@ -12,9 +12,9 @@ from django.contrib.auth import authenticate, login, logout
 #verifica si el usuario esta logeado
 from django.contrib.auth.mixins import LoginRequiredMixin
 from decimal import Decimal, getcontext, ROUND_HALF_UP
-from .models import Categoria, Cart, CartItem, Purchase
+from .models import Categoria, Cart, CartItem, Purchase, Impuesto
 from .forms import CategoriaForm
-from django.views.generic import ListView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from .models import PrecioScraping
 from django.db.models import Min, Max
 import re
@@ -48,6 +48,7 @@ from django.db import transaction
 from django.db.models import Max, F, OuterRef, Subquery
 from django.utils.timezone import now
 from reportlab.lib.pagesizes import landscape
+from django.views.decorators.http import require_POST
 
 
 
@@ -489,6 +490,12 @@ class AgregarProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
+    def get(self, request):
+        form = ProductoFormulario()  # Aquí se crea una instancia del formulario
+        contexto = {'form': form}
+        contexto = complementarContexto(contexto, request.user)
+        return render(request, 'inventario/producto/agregarProducto.html', contexto)
+
     def post(self, request):
         form = ProductoFormulario(request.POST, request.FILES)
         if form.is_valid():
@@ -502,12 +509,6 @@ class AgregarProducto(LoginRequiredMixin, View):
         else:
             messages.error(request, 'Por favor corrija los errores en el formulario.')
             return render(request, 'inventario/producto/agregarProducto.html', {'form': form})
-
-    def get(self, request):
-        form = ProductoFormulario()
-        contexto = {'form': form}
-        contexto = complementarContexto(contexto, request.user)
-        return render(request, 'inventario/producto/agregarProducto.html', contexto)
     
 
 
@@ -591,13 +592,16 @@ class EditarProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
+    def get(self, request, id): 
+        producto = get_object_or_404(Producto, pk=id)
+        form = ProductoFormulario(instance=producto)  # Aquí se carga el producto a editar
+        return render(request, 'inventario/producto/agregarProducto.html', {'form': form, 'editar': True})
+
     def post(self, request, id):
         producto = get_object_or_404(Producto, pk=id)
         form = ProductoFormulario(request.POST, request.FILES, instance=producto)
-
         if form.is_valid():
             producto = form.save(commit=False)
-
             if 'imagen_producto' in request.FILES:
                 imagen_producto = request.FILES['imagen_producto']
                 imagen_stream = compress_image(imagen_producto, f"comprimido_{imagen_producto.name}")  # Comprime la imagen
@@ -610,17 +614,11 @@ class EditarProducto(LoginRequiredMixin, View):
                     charset=None  # El conjunto de caracteres (no es necesario especificarlo para imágenes)
                 )
                 producto.imagen_producto = imagen_final
-
             producto.save()
             messages.success(request, 'Producto actualizado exitosamente.')
             return redirect('inventario:listarProductos')
         else:
             return render(request, 'inventario/producto/agregarProducto.html', {'form': form, 'editar': True})
-
-    def get(self, request, id): 
-        producto = get_object_or_404(Producto, pk=id)
-        form = ProductoFormulario(instance=producto)
-        return render(request, 'inventario/producto/agregarProducto.html', {'form': form, 'editar': True})
 
 
 #Fin de vista------------------------------------------------------------------------------------#
@@ -1739,13 +1737,15 @@ class ObtenerProductoPorCodigo(View):
         try:
             producto = Producto.objects.get(codigo_barra=codigo_barra)
             precio = float(producto.precio) if producto.precio is not None else None
+            tipo_producto = producto.tipo.nombre if producto.tipo else None  # Se obtiene el nombre del tipo relacionado
+
             data = {
                 'success': True,
                 'producto': {
                     'id': producto.id,
                     'descripcion': producto.descripcion,
                     'precio': precio,  # Usar la variable precio que ya tiene la lógica adecuada
-                    'tipo': producto.get_tipo_display(),  # Retorna la representación en string del choice
+                    'tipo': tipo_producto,  # Retorna la representación en string del choice
                     'disponible': producto.disponible,
                     'fecha_vencimiento': producto.fecha_vencimiento.strftime('%Y-%m-%d'),  # Formateado como string
                     'imagen': producto.imagen_producto.url if producto.imagen_producto else None
@@ -2340,6 +2340,26 @@ class PreciosProducto(View):
                 logger.warning(f"Precio no válido {precio} encontrado para {producto.descripcion}")
 
 
+##
+## P R E C I O S -    G O O G L E    S E L E N I U M
+##
+
+
+## A P I   P R E C I O S ##
+
+class PrecioProductoAPI(View):
+    def get(self, request, id):
+        try:
+            producto = Producto.objects.get(pk=id)
+            precios = PrecioScraping.objects.filter(producto=producto).order_by('-fecha_obtencion')
+            precios_dict = [{
+                'precio': precio.precio,
+                'fuente': precio.fuente,
+                'fecha': precio.fecha_obtencion.strftime('%Y-%m-%d')
+            } for precio in precios]
+            return JsonResponse({'precios': precios_dict, 'descripcion': producto.descripcion}, safe=False)
+        except Producto.DoesNotExist:
+            return JsonResponse({'error': 'Producto no encontrado'}, status=404)
 
 
 
@@ -2373,38 +2393,55 @@ class CartView(View):
         cart = request.session.get('cart', {})
         products = []
         total = 0
+        impuestos = Impuesto.objects.all()
         for product_id, quantity in cart.items():
             product = get_object_or_404(Producto, id=product_id)
             precio = float(product.precio)
             total += precio * int(quantity)
             products.append({'product': product, 'quantity': quantity})
-        return render(request, 'inventario/producto/carrito.html', {'products': products, 'total': total})
+        return render(request, 'inventario/producto/carrito.html', {'products': products, 'total': total, 'impuestos': impuestos})
     
+        
 class UpdateCartItemView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         print("Cuerpo de la solicitud recibido:", request.body)
-        body_unicode = request.body.decode('utf-8')
-        body = json.loads(body_unicode)
-        print("Cuerpo de la solicitud:", body)  # Esto mostrará el cuerpo de la solicitud en la consola del servidor
+        body = json.loads(request.body.decode('utf-8'))
+        print("Cuerpo de la solicitud:", body)
 
         if not request.user.is_authenticated:
-            logger.warning('Intento de actualización de carrito por usuario no autenticado.')
             return JsonResponse({'success': False, 'message': 'Usuario no autenticado.'}, status=401)
 
         product_id = kwargs.get('product_id')
-        data = json.loads(request.body)
-        quantity = data.get('quantity')
-        logger.info(f'Actualizando carrito para el producto {product_id} con cantidad {quantity}.')
+        desired_price = body.get('desired_price')
+        quantity = body.get('quantity')
 
         try:
             cart_item = get_object_or_404(CartItem, product_id=product_id, cart__user=request.user)
-            cart_item.quantity = int(quantity)
+            product = cart_item.product
+
+            if desired_price is not None and product.precio_por_gramo:
+                quantity = float(desired_price) / product.precio_por_gramo
+                cart_item.quantity = quantity
+
+            if quantity is not None:
+                cart_item.quantity = int(quantity)
+
+            if product.precio is None:
+                return JsonResponse({'success': False, 'message': 'Precio del producto no disponible.'}, status=400)
+
             cart_item.save()
-            new_subtotal = cart_item.quantity * cart_item.product.precio
-            logger.info(f'Carrito actualizado correctamente para el producto {product_id}. Nuevo subtotal: {new_subtotal}')
-            return JsonResponse({'success': True, 'message': 'Carrito actualizado.', 'new_subtotal': new_subtotal})
+            new_subtotal = cart_item.quantity * product.precio
+            total_sin_impuestos = sum(item.quantity * item.product.precio for item in CartItem.objects.filter(cart=cart_item.cart))
+            impuesto = Impuesto.objects.get(nombre="IVA")  # Asumiendo que se aplica el IVA a todos los productos
+            total_con_impuestos = total_sin_impuestos * (1 + impuesto.tasa / 100)
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Carrito actualizado.',
+                'new_subtotal': new_subtotal,
+                'total_con_impuestos': total_con_impuestos
+            })
         except Exception as e:
-            logger.error(f'Error al actualizar el carrito para el producto {product_id}: {str(e)}', exc_info=True)
             return JsonResponse({'success': False, 'message': f'Error al actualizar el carrito: {str(e)}'}, status=500)
 
 class RemoveFromCartView(View):
@@ -2423,64 +2460,100 @@ class RemoveFromCartView(View):
 
 class Checkout(View):
     def post(self, request):
-        cart, created = Cart.objects.get_or_create(user=request.user)
+        impuesto_id = request.POST.get('impuesto_id')
+        impuesto = get_object_or_404(Impuesto, id=impuesto_id)
+        cart, _ = Cart.objects.get_or_create(user=request.user)
         cart_items = CartItem.objects.filter(cart=cart)
+
         if not cart_items:
             messages.error(request, "Tu carrito está vacío.")
             return redirect('inventario:cart')
 
-        # Preparar el buffer para el PDF con un tamaño adecuado para la impresora de 58 mm
         pdf_buffer = BytesIO()
         page_width = 164  # Ancho en puntos para 58 mm
         page_height = 800  # Altura suficiente para el contenido del recibo
         p = canvas.Canvas(pdf_buffer, pagesize=(page_width, page_height))
-        p.setFont("Helvetica", 8)  # Ajuste de la fuente para adaptarse al ancho estrecho
+        p.setFont("Helvetica", 8)
 
-        # Iniciar desde la parte superior del recibo
         y = page_height - 20  # Comenzar desde un margen pequeño
+        y = self.draw_wrapped_text(p, "4 Ases - Comprobante de Compra", 10, y, page_width - 20)
 
-        # Encabezado del recibo
-        p.drawString(10, y, "4 Ases - Comprobante de Compra")
-        y -= 10  # Reducir el espacio entre líneas
-
-        total = 0
+        total_sin_impuestos = 0
         for item in cart_items:
             if item.quantity > item.product.disponible:
                 messages.error(request, f"No hay suficiente stock para {item.product.descripcion}.")
                 return redirect('inventario:cart')
-            product = item.product
-            subtotal = item.quantity * product.precio
-            total += subtotal
+            if item.product.precio is None:
+                messages.error(request, f"El producto {item.product.descripcion} no tiene un precio definido.")
+                return redirect('inventario:cart')
+            
+            subtotal = item.quantity * item.product.precio
+            total_sin_impuestos += subtotal
 
-            # Añadir descripción del producto al recibo
-            description = f"{product.descripcion[:30]}: {item.quantity} x ${product.precio:.2f} = ${subtotal:.2f}"
-            p.drawString(10, y, description)
-            y -= 10  # Continuar reduciendo el espacio entre líneas para más items
+            # Asumimos que el campo 'tipo' del producto tiene un atributo 'nombre' que indica la unidad de venta
+            quantity_display = f"{item.quantity} {item.product.tipo.nombre}"
+            item_description = f"{item.product.descripcion}: {quantity_display} x ${item.product.precio:.2f} = ${subtotal:.2f}"
+            y = self.draw_wrapped_text(p, item_description, 10, y - 10, page_width - 20)
 
-        # Pie de página del recibo
-        p.drawString(10, y, "----------------------------------")
-        y -= 10
-        p.drawString(10, y, f"Total: ${total:.2f}")
-        y -= 10
-        p.drawString(10, y, f"Fecha de Emisión: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        y -= 10
-        p.drawString(10, y, "Gracias por Comprar en 4 Ases")
-        y -= 30
-        p.drawString(10, y, "----------------------------------")
-        # Finalizar la página y guardar el PDF en el buffer
+        total_con_impuestos = total_sin_impuestos * (1 + impuesto.tasa / 100)
+        y = self.draw_wrapped_text(p, "----------------------------------", 10, y - 10, page_width - 20)
+        y = self.draw_wrapped_text(p, f"Total: ${total_con_impuestos:.2f}", 10, y - 10, page_width - 20)
+        y = self.draw_wrapped_text(p, f"Fecha de Emisión: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}", 10, y - 10, page_width - 20)
+        self.draw_wrapped_text(p, "Gracias por Comprar en 4 Ases", 10, y - 30, page_width - 20)
+
         p.showPage()
         p.save()
-
         pdf_buffer.seek(0)
-        cart_items.delete()  # Vaciar el carrito
 
-        purchase = Purchase.objects.create(user=request.user, total=total)  # Crear la compra
+        purchase = Purchase.objects.create(user=request.user, total=total_con_impuestos)
+        for item in cart_items:
+            PurchaseItem.objects.create(
+                purchase=purchase,
+                product=item.product,
+                quantity=item.quantity,
+                price=item.product.precio
+            )
+        cart_items.delete()
+
         purchase_id = purchase.id
-
-        # Devolver el PDF como respuesta HTTP con nombre de archivo que incluye el ID de compra
         response = HttpResponse(pdf_buffer, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="recibo_{purchase_id}.pdf"'
         return response
+
+    def draw_wrapped_text(self, p, text, x, y, max_width):
+        # Esta función dibuja texto en el canvas y devuelve la coordenada y actualizada
+        words = text.split()
+        current_line = ""
+        space_width = p.stringWidth(' ', "Helvetica", 8)
+        for word in words:
+            word_width = p.stringWidth(word, "Helvetica", 8)
+            if p.stringWidth(current_line + word, "Helvetica", 8) + space_width > max_width:
+                p.drawString(x, y, current_line)
+                y -= 10
+                current_line = word + ' '
+            else:
+                current_line += word + ' '
+        if current_line:
+            p.drawString(x, y, current_line)
+        return y
+
+
+class UpdateProductPriceView(View):
+    def post(self, request, product_id):
+        try:
+            data = json.loads(request.body)
+            nuevo_precio = data.get('precio')  # Cambio aquí para esperar 'precio' en lugar de 'price'
+            if nuevo_precio is None:
+                return JsonResponse({'success': False, 'message': 'Precio no proporcionado'}, status=400)
+
+            product = get_object_or_404(Producto, id=product_id)
+            product.precio = float(nuevo_precio)  # Asegúrate de que es un número flotante válido
+            product.save()
+            return JsonResponse({'success': True, 'message': 'Precio actualizado correctamente.'})
+        except Exception as e:
+            print(f"Error al actualizar el precio: {str(e)}")
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
 
 
 def generate_pdf_receipt(cart):
@@ -2607,3 +2680,91 @@ class CartItemCreateAPIView(generics.CreateAPIView):
 
 #Fin de vista--------------------------------------------------------------------------------
 
+#  I M P U E S T O S --------------------------------------------------------------------------
+
+
+class ListarImpuestos(View):
+    def get(self, request):
+        impuestos = list(Impuesto.objects.values())
+        return JsonResponse(impuestos, safe=False)
+
+
+class CrearImpuesto(View):
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            impuesto = Impuesto.objects.create(nombre=data['nombre'], tasa=data['tasa'])
+            return JsonResponse({'status': 'Impuesto creado', 'id': impuesto.id}, status=201)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+
+class EditarImpuesto(View):
+    def put(self, request, id):
+        try:
+            data = json.loads(request.body)
+            impuesto = Impuesto.objects.get(id=id)
+            impuesto.nombre = data['nombre']
+            impuesto.tasa = data['tasa']
+            impuesto.save()
+            return JsonResponse({'status': 'Impuesto actualizado'}, status=200)
+        except Impuesto.DoesNotExist:
+            return JsonResponse({'error': 'Impuesto no encontrado'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+class EliminarImpuesto(View):
+    def delete(self, request, id):
+        try:
+            impuesto = Impuesto.objects.get(id=id)
+            impuesto.delete()
+            return JsonResponse({'status': 'Impuesto eliminado'}, status=204)
+        except Impuesto.DoesNotExist:
+            return JsonResponse({'error': 'Impuesto no encontrado'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+
+#Fin de vista--------------------------------------------------------------------------------
+
+#  V E N T A S ------------------------------------------------------------------------------
+
+class VentasView(View):
+    def get(self, request):
+        ventas = Purchase.objects.prefetch_related('purchase_items').all().order_by('-created_at')
+        detalles_ventas = [
+            {
+                'venta_id': venta.id,
+                'fecha': venta.created_at.strftime('%Y-%m-%d'),
+                'total': venta.total,
+                'productos': [
+                    {
+                        'producto_id': purchase_item.product.id,
+                        'descripcion': purchase_item.product.descripcion,
+                        'precio_unitario': purchase_item.price,
+                        'cantidad': purchase_item.quantity,
+                        'precio_total': purchase_item.quantity * purchase_item.price,
+                    } 
+                    for purchase_item in venta.purchase_items.all()
+                ]
+            } for venta in ventas
+        ]
+        
+        return render(request, 'inventario/ventas/listar_ventas.html', {'ventas': detalles_ventas})
+
+
+    
+    def post(self, request):
+        action = request.POST.get('action')
+        if action == 'delete':
+            venta_id = request.POST.get('venta_id')
+            venta = get_object_or_404(Purchase, id=venta_id)
+            venta.delete()
+            messages.success(request, 'Venta eliminada correctamente.')
+            return redirect('ventas')
+
+
+
+
+
+#Fin de vista--------------------------------------------------------------------------------

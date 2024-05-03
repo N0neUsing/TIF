@@ -48,13 +48,16 @@
                                         <tr>
                                             <td>
                                                 <div class="btn-group">
-                                                    <button class="btn btn-add-to-cart mr-1" data-product-id="{{ producto.id }}">
+                                                    <button class="btn add-to-cart mr-1" data-product-id="{{ producto.id }}">
                                                     <i class="fa fa-shopping-cart"></i></button>
                                                     <a href="{% url 'inventario:editar_producto' producto.id %}" class="btn btn-primary btn-sm mr-1">
                                                         <i class="fa fa-edit"></i>
                                                     </a>
                                                     <button onclick="eliminarEntrada({{ producto.id }}, 'producto')" class="btn btn-danger btn-sm">
                                                         <i class="fa fa-trash"></i>
+                                                    </button>
+                                                    <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#priceModal" data-product-id="{{ producto.id }}">
+                                                        <i class="fa fa-tag"></i>
                                                     </button>
                                                 </div>
                                             </td>
@@ -66,12 +69,32 @@
                                                 {% endif %}
                                             </td>
                                             <td>{{ producto.descripcion }}</td>
-                                            <td>{{ producto.precio }}</td>
+                                            <!-- Columna de precios -->
+                                            <td>
+                                                {% if producto.precio %}
+                                                    {% if producto.tipo_id == 3 %}
+                                                        ${{ producto.precio }} / kg (${{ producto.precio|multiply:0.001|floatformat:2 }} / g)
+                                                    {% elif producto.tipo == 5 %}
+                                                        ${{ producto.precio }} / L (${{ producto.precio|multiply:0.001|floatformat:2 }} / mL)
+                                                    {% else %}
+                                                        ${{ producto.precio }}
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span style="color: red;">Sin Precio</span>
+                                                {% endif %}
+                                            </td>
+                                            <!-- Columna de cantidad -->
                                             <td>
                                                 {% if producto.disponible == 0 %}
-                                                <span style="color: red;">Agotado</span>
+                                                    <span style="color: red;">Agotado</span>
                                                 {% else %}
-                                                    {{ producto.disponible }}
+                                                    {% if producto.tipo == 3 %}
+                                                        {{ producto.disponible|multiply:0.001|floatformat:2 }} kg ({{ producto.disponible }} g)
+                                                    {% elif producto.tipo == 5 %}
+                                                        {{ producto.disponible|multiply:0.001|floatformat:2 }} L ({{ producto.disponible }} mL)
+                                                    {% else %}
+                                                        {{ producto.disponible }}
+                                                    {% endif %}
                                                 {% endif %}
                                             </td>
                                             <td>{{ producto.fecha_introduccion|date:"d/m/Y" }}</td>

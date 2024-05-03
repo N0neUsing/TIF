@@ -1,0 +1,75 @@
+{% extends "inventario/comun/base.html" %}
+{% load my_filters %}
+
+{% block content %}
+<h2>Listado de Ventas</h2>
+<form method="get" action="">
+    {{ form.as_p }}
+    <button type="submit">Filtrar</button>
+</form>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID Venta</th>
+            <th>Fecha</th>
+            <th>Total</th>
+            <th>Productos</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for venta in ventas %}
+        <tr>
+            <td>{{ venta.venta_id }}</td>
+            <td>{{ venta.fecha }}</td>
+            <td>{{ venta.total }}</td>
+            <td>
+                <!-- Botón que activa el modal -->
+                <button type="button" class="btn btn-info" data-toggle="modal" data-target="#productosModal{{ venta.venta_id }}">
+                    Ver Productos
+                </button>
+        
+                <!-- Modal -->
+                <div class="modal fade" id="productosModal{{ venta.venta_id }}" tabindex="-1" role="dialog" aria-labelledby="modalTitle" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalTitle">Productos de la Venta {{ venta.venta_id }}</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Descripción</th>
+                                            <th>Precio Unitario</th>
+                                            <th>Cantidad</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for producto in venta.productos %}
+                                        <tr>
+                                            <td>{{ producto.descripcion }}</td>
+                                            <td>{{ producto.precio_unitario }}</td>
+                                            <td>{{ producto.cantidad }}</td>
+                                            <td>{{ producto.precio_total }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td> <!-- Acciones --> </td>
+        </tr>
+        {% endfor %}
+        
+    </tbody>
+</table>
+{% endblock %}

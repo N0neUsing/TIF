@@ -9,7 +9,6 @@
         <h1 class="title">Carrito de Compras</h1>
     </div>
     <section class="section">
-        <!-- Bloque de mensajes -->
         {% if messages %}
             <div class="messages">
                 {% for message in messages %}
@@ -17,13 +16,11 @@
                 {% endfor %}
             </div>
         {% endif %}
-
         <div class="row">
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-block">
                         <h3 class="title">Productos en el Carrito</h3>
-                        <!-- Botón para iniciar el escaneo en carrito.html -->
                         <button id="startScanButton" class="btn btn-primary" data-toggle="modal" data-target="#scanModalCarrito">Escanear Producto</button>
                         <div class="table-responsive">
                             <table class="table">
@@ -39,44 +36,88 @@
                                 </thead>
                                 <tbody id="cart-items-container">
                                     {% for item in products %}
-                                        <tr id="product-row-{{ item.product.id }}">
-                                            <td>
-                                                {% if item.product.imagen_producto %}
-                                                    <img src="{{ item.product.imagen_producto_url }}" alt="{{ item.product.descripcion }}" class="expand-on-hover" height="50">
-                                                {% else %}
-                                                    Sin Imagen
-                                                {% endif %}
-                                            </td>
-                                            <td>{{ item.product.descripcion }}</td>
-                                            <td>
-                                                <input type="number" name="quantity" value="{{ item.quantity }}" min="1">
-                                                <button type="button" class="btn btn-primary btn-update-cart" data-product-id="{{ item.product.id }}">Actualizar</button>
-                                            </td>
-                                            <td class="product-price">{{ item.product.precio|floatformat:2 }}</td>
-                                            <td class="subtotal-cell">{{ item.product.precio|floatformat:2|multiply:item.quantity|floatformat:2 }}</td>
-                                            <td>
-                                                <a href="{% url 'inventario:remove_from_cart' item.product.id %}" class="btn btn-danger remove-from-cart">Eliminar</a>
-                                            </td>
-                                        </tr>
+                                    <tr id="product-row-{{ item.product.id }}">
+                                        <td>
+                                            {% if item.product.imagen_producto %}
+                                            <img src="{{ item.product.imagen_producto_url }}" alt="{{ item.product.descripcion }}" class="expand-on-hover" height="50">
+                                            {% else %}
+                                            Sin Imagen
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ item.product.descripcion }}</td>
+                                        <td>
+                                            <input type="number" name="quantity" value="{{ item.quantity }}" min="1">
+                                            <input type="number" name="desired-price" class="desired-price" data-product-id="{{ item.product.id }}" placeholder="Precio deseado" style="width: 80px;" min="0.01" step="0.01">
+                                            <button type="button" class="btn btn-primary btn-update-cart" data-product-id="{{ item.product.id }}">Actualizar</button>
+                                        </td>
+                                        <td class="product-price">
+                                            {% if item.product.precio %}
+                                            {{ item.product.precio|floatformat:2 }}
+                                            {% else %}
+                                            <span class="price-placeholder">N/A</span>
+                                            <!-- Ensure this button is rendered when the price is null -->
+                                            <button type="button" class="btn btn-info btn-add-price" data-product-id="{{ item.product.id }}">Agregar Precio</button>
+                                            {% endif %}
+                                        </td>
+                                        <td class="subtotal-cell">
+                                            {% if item.product.precio %}
+                                            {{ item.product.precio|floatformat:2|multiply:item.quantity|floatformat:2 }}
+                                            {% else %}
+                                            N/A
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'inventario:remove_from_cart' item.product.id %}" class="btn btn-danger remove-from-cart">Eliminar</a>
+                                        </td>
+                                    </tr>
                                     {% empty %}
-                                        <tr>
-                                            <td colspan="5">No hay productos en el carrito.</td>
-                                        </tr>
+                                    <tr>
+                                        <td colspan="6">No hay productos en el carrito.</td>
+                                    </tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
                         </div>
-                            <div class="card-footer" id="checkout-footer">
-                                <h4>Total: <span class="total-carrito">$0.00</span></h4>
-                                <form method="post" action="{% url 'inventario:checkout' %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-primary" id="finalize-purchase-button">Finalizar Compra</button>
-                                </form>
-                            </div>                      
+                        <div class="card-footer" id="checkout-footer">
+                            <h4>Total: <span class="total-carrito">$0.00</span></h4>
+                            <form method="post" action="{% url 'inventario:checkout' %}">
+                                {% csrf_token %}
+                                <select name="impuesto_id">
+                                    {% for impuesto in impuestos %}
+                                    <option value="{{ impuesto.id }}">{{ impuesto.nombre }} - {{ impuesto.tasa }}%</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-primary" id="finalize-purchase-button">Finalizar Compra</button>
+                            </form>
                         </div>
                     </div>
                 </div>
             </div>
-        </section>
-    </article>
+        </div>
+    </section>
+</article>
+
+<!-- Modal para agregar precio -->
+<div class="modal fade" id="priceModal" tabindex="-1" role="dialog" aria-labelledby="priceModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="priceModalLabel">Actualizar Precio</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="updatePriceForm">
+            <div class="form-group">
+              <label for="modal-product-price">Nuevo Precio</label>
+              <input type="number" class="form-control" id="modal-product-price" placeholder="Ingresa el nuevo precio" required>
+            </div>
+            <button type="button" class="btn btn-primary" id="save-price-button">Guardar Cambios</button>
+          </form>
+        </div>
+      </div>
+    </div>
+</div>
+
 {% endblock %}

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Producto,Cliente, Proveedor, Usuario, Opciones, Categoria
+from .models import Producto,Cliente, Proveedor, Usuario, Opciones, Categoria, TipoProducto, Impuesto
 from django.utils import timezone
 
 from django.forms import ModelChoiceField
@@ -48,9 +48,9 @@ class ProductoFormulario(forms.ModelForm):
         widget=forms.FileInput(attrs={'class': 'form-control-file'})
     )
     imagen_producto = forms.ImageField(
-    required=False,
-    label='Imagen del Producto',
-    widget=forms.FileInput(attrs={'class': 'form-control-file'})
+        required=False,
+        label='Imagen del Producto',
+        widget=forms.FileInput(attrs={'class': 'form-control-file'})
     )
     codigo_barra = forms.CharField(
         max_length=100, 
@@ -68,8 +68,25 @@ class ProductoFormulario(forms.ModelForm):
         widgets = {
             'descripcion': forms.TextInput(attrs={'placeholder': 'Nombre del producto', 'id': 'descripcion', 'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-control', 'id': 'tipo'}),
-            'categoria': forms.Select(attrs={'class': 'form-control', 'id': 'categoria'}),
+            'categoria': forms.Select(attrs={'class': 'form_control', 'id': 'categoria'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super(ProductoFormulario, self).__init__(*args, **kwargs)
+        self.fields['tipo'].queryset = TipoProducto.objects.all()
+
+    def clean_precio(self):
+        precio = self.cleaned_data.get('precio')
+        if precio is not None and precio < 0:
+            raise forms.ValidationError("El precio no puede ser negativo.")
+        return precio
+
+    def clean_disponible(self):
+        disponible = self.cleaned_data.get('disponible')
+        if disponible < 0:
+            raise forms.ValidationError("La cantidad disponible no puede ser negativa.")
+        return disponible
+
 
 class ImportarProductosFormulario(forms.Form):
     importar = forms.FileField(
@@ -446,7 +463,35 @@ class OpcionesFormulario(forms.Form):
         attrs={'class':'custom-file-input','id':'customFile'}))
 
 
+    valor_iva = forms.DecimalField(
+        label='Valor del IVA',
+        max_digits=5,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ingrese el valor del IVA, ej. 16.00'
+        })
+    )
+
 class CategoriaForm(forms.ModelForm):
     class Meta:
         model = Categoria
         fields = ['nombre', 'descripcion']
+
+
+class ImpuestoForm(forms.ModelForm):
+    class Meta:
+        model = Impuesto
+        fields = ['nombre', 'tasa']
+
+
+## V E N T A S ---------------------------------------------------
+
+from django import forms
+
+class FiltroVentasForm(forms.Form):
+    fecha_inicio = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    fecha_fin = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+
+
+## FINAL FORMULARIO-----------------------------------------------

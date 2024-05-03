@@ -21,6 +21,9 @@ path('editarProducto/<int:id>/', views.EditarProducto.as_view(), name='editar_pr
 path('editarProducto/<str:codigo_barra>/', views.EditarProducto.as_view(), name='editar_producto'),
 path('preciosProducto', views.PreciosProducto.as_view(), name='preciosProducto'),
 path('api/producto/<str:codigo_barra>/', views.ObtenerProductoPorCodigo.as_view(), name='obtener_producto_por_codigo'),
+path('api/precioProducto/<int:id>/', views.PrecioProductoAPI.as_view(), name='precioProductoAPI'),
+path('actualizar-precio/<int:product_id>/', views.UpdateProductPriceView.as_view(), name='actualizar-precio'),
+
 
 
 path('listarProveedores', views.ListarProveedores.as_view(), name='listarProveedores'),
@@ -73,8 +76,12 @@ path('agregar-producto-por-codigo/', views.AgregarProductoPorCodigo.as_view(), n
 path('api/cart/', views.CartListCreateAPIView.as_view(), name='api_cart_list_create'),
 path('api/cart/items/', views.CartItemCreateAPIView.as_view(), name='api_cartitem_create'),
 
+path('impuestos/', views.ListarImpuestos.as_view(), name='listarImpuestos'),
+path('impuestos/crear/', views.CrearImpuesto.as_view(), name='crearImpuesto'),
+path('impuestos/editar/<int:id>/', views.EditarImpuesto.as_view(), name='editarImpuesto'),
+path('impuestos/eliminar/<int:id>/', views.EliminarImpuesto.as_view(), name='eliminarImpuesto'),
 
-
+path('ventas/listar_ventas/', views.VentasView.as_view(), name='listar_ventas'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

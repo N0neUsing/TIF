@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 
 from .forms import LoginFormulario
-from .models import Usuario
+from .models import Usuario, TipoProducto
 
 class UsuarioAdmin(UserAdmin):
     add_form = LoginFormulario
@@ -12,3 +12,6 @@ class UsuarioAdmin(UserAdmin):
     list_display = ['email', 'username',]
 
 admin.site.register(Usuario, UsuarioAdmin)
+
+class TipoProductoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'descripcion')
