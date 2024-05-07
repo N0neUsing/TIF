@@ -597,6 +597,107 @@ document.addEventListener('input', function (event) {
     }
 }, false);
 
+// PARTE DE CARRITO A CLIENTE
+
+function loadClients() {
+    fetch(`${BASE_URL}/inventario/api/clientes/`)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        const tbody = document.getElementById('client-table-body');
+        tbody.innerHTML = ''; // Limpiar filas existentes
+        data.forEach(client => {
+            const row = tbody.insertRow();
+            row.insertCell().textContent = client.id;
+            row.insertCell().textContent = client.nombre;
+            row.insertCell().textContent = client.apellido;
+            const actionCell = row.insertCell();
+            const actionButton = document.createElement('button');
+            actionButton.textContent = 'Seleccionar';
+            actionButton.className = 'btn btn-primary btn-sm';
+            actionButton.onclick = function() {
+                document.getElementById('client-select').value = client.id; // Asumiendo que aún necesitas este input por alguna razón
+                $('#clientModal').modal('hide'); // Opcional: cerrar el modal al seleccionar
+            };
+            actionCell.appendChild(actionButton);
+        });
+    })
+    .catch(error => {
+        console.error('Error al cargar los clientes:', error);
+    });
+}
+
+function selectClient(clientId) {
+    // Aquí puedes manejar el evento cuando un usuario selecciona un cliente
+    console.log('Cliente seleccionado:', clientId);
+    document.getElementById('client-select').value = clientId; // Asume que hay un input para almacenar el ID seleccionado
+}
+
+function assignCartToClient() {
+    const clientId = document.getElementById('client-select').value;
+    fetch(`${BASE_URL}/inventario/asignar-carrito-a-cliente/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ cliente_id: clientId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Compra asignada y finalizada correctamente', 'success');
+            $('#clientModal').modal('hide');
+            window.location.reload();  // Recargar la página para reflejar los cambios
+        } else {
+            showAlert(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error al asignar y finalizar la compra', 'error');
+    });
+}
+
+
+function finalizePurchase() {
+    // Aquí deberías incluir todas las operaciones necesarias para finalizar la compra
+    console.log("Finalizando la compra...");
+    fetch(`${BASE_URL}/inventario/finalizar-compra/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        // Incluir cualquier dato necesario para la finalización de la compra
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Compra finalizada correctamente', 'success');
+            // Aquí podrías redirigir al usuario o realizar alguna otra acción post-compra
+        } else {
+            showAlert('Error al finalizar la compra', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error al finalizar la compra:', error);
+        showAlert('Error al finalizar la compra', 'error');
+    });
+}
+
+// Agregar listener para cargar clientes cuando se muestra el modal
+$('#clientModal').on('show.bs.modal', function() {
+    if (!this.dataLoaded) {  // Evitar recargar los datos si ya se han cargado
+        loadClients();
+        this.dataLoaded = true;  // Marcar que los datos han sido cargados
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     attachEventListenersToButtons();
 });

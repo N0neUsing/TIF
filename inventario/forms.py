@@ -159,33 +159,25 @@ class ClienteFormulario(forms.ModelForm):
         )
 
 
+class ClienteFormulario(forms.ModelForm):
     class Meta:
         model = Cliente
-        fields = ['tipoCedula','cedula','nombre','apellido','direccion','nacimiento','telefono','correo','telefono2','correo2']
+        fields = ['nombre', 'apellido', 'telefono', 'direccion', 'correo']  # Ajustar según los campos deseados
         labels = {
-        'cedula': 'Cedula del cliente',
-        'nombre': 'Nombre del cliente',
-        'apellido': 'Apellido del cliente',
-        'direccion': 'Direccion del cliente',
-        'nacimiento': 'Fecha de nacimiento del cliente',
-        'telefono': 'Numero telefonico del cliente',
-        'correo': 'Correo electronico del cliente',
-        'telefono2': 'Segundo numero telefonico',
-        'correo2': 'Segundo correo electronico'
+            'nombre': 'Nombre',
+            'apellido': 'Apellido',
+            'telefono': 'Teléfono',
+            'direccion': 'Dirección (Opcional)',
+            'correo': 'Correo electrónico (Opcional)',
         }
         widgets = {
-        'cedula': forms.TextInput(attrs={'placeholder': 'Inserte la cedula de identidad del cliente',
-        'id':'cedula','class':'form-control'} ),
-        'nombre': forms.TextInput(attrs={'placeholder': 'Inserte el primer o primeros nombres del cliente',
-        'id':'nombre','class':'form-control'}),
-        'apellido': forms.TextInput(attrs={'class':'form-control','id':'apellido','placeholder':'El apellido del cliente'}),
-        'direccion': forms.TextInput(attrs={'class':'form-control','id':'direccion','placeholder':'Direccion del cliente'}), 
-        'nacimiento':forms.DateInput(format=('%d-%m-%Y'),attrs={'id':'hasta','class':'form-control','type':'date'} ),
-        'telefono':forms.TextInput(attrs={'id':'telefono','class':'form-control',
-        'placeholder':'El telefono del cliente'} ),
-        'correo':forms.TextInput(attrs={'placeholder': 'Correo del cliente',
-        'id':'correo','class':'form-control'} )
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'apellido': forms.TextInput(attrs={'class': 'form-control'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control'}),
+            'direccion': forms.TextInput(attrs={'class': 'form-control'}),
+            'correo': forms.EmailInput(attrs={'class': 'form-control'}),
         }
+
 
 
 class EmitirFacturaFormulario(forms.Form):
@@ -281,13 +273,12 @@ class ProveedorFormulario(forms.ModelForm):
 
     class Meta:
         model = Cliente
-        fields = ['tipoCedula','cedula','nombre','apellido','direccion','nacimiento','telefono','correo','telefono2','correo2']
+        fields = ['tipoCedula','cedula','nombre','apellido','direccion','telefono','correo']
         labels = {
         'cedula': 'Cedula del proveedor',
         'nombre': 'Nombre del proveedor',
         'apellido': 'Apellido del proveedor',
         'direccion': 'Direccion del proveedor',
-        'nacimiento': 'Fecha de nacimiento del proveedor',
         'telefono': 'Numero telefonico del proveedor',
         'correo': 'Correo electronico del proveedor',
         'telefono2': 'Segundo numero telefonico',
@@ -300,7 +291,6 @@ class ProveedorFormulario(forms.ModelForm):
         'id':'nombre','class':'form-control'}),
         'apellido': forms.TextInput(attrs={'class':'form-control','id':'apellido','placeholder':'El apellido del proveedor'}),
         'direccion': forms.TextInput(attrs={'class':'form-control','id':'direccion','placeholder':'Direccion del proveedor'}), 
-        'nacimiento':forms.DateInput(format=('%d-%m-%Y'),attrs={'id':'hasta','class':'form-control','type':'date'} ),
         'telefono':forms.TextInput(attrs={'id':'telefono','class':'form-control',
         'placeholder':'El telefono del proveedor'} ),
         'correo':forms.TextInput(attrs={'placeholder': 'Correo del proveedor',

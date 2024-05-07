@@ -12,7 +12,7 @@ from django.contrib.auth import authenticate, login, logout
 #verifica si el usuario esta logeado
 from django.contrib.auth.mixins import LoginRequiredMixin
 from decimal import Decimal, getcontext, ROUND_HALF_UP
-from .models import Categoria, Cart, CartItem, Purchase, Impuesto
+from .models import Categoria, Cart, CartItem, Purchase, Impuesto, Cliente
 from .forms import CategoriaForm
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from .models import PrecioScraping
@@ -49,6 +49,9 @@ from django.db.models import Max, F, OuterRef, Subquery
 from django.utils.timezone import now
 from reportlab.lib.pagesizes import landscape
 from django.views.decorators.http import require_POST
+from rest_framework.views import APIView 
+from rest_framework.response import Response
+
 
 
 
@@ -648,41 +651,36 @@ class AgregarCliente(LoginRequiredMixin, View):
     redirect_field_name = None
 
     def post(self, request):
-        # Crea una instancia del formulario y la llena con los datos:
         form = ClienteFormulario(request.POST)
-        # Revisa si es valido:
-
         if form.is_valid():
-            # Procesa y asigna los datos con form.cleaned_data como se requiere
-
-            cedula = form.cleaned_data['cedula']
+            # Extrae solo los datos limpios que necesitas
+            cedula = form.cleaned_data.get('cedula', '')
             nombre = form.cleaned_data['nombre']
             apellido = form.cleaned_data['apellido']
-            direccion = form.cleaned_data['direccion']
-            nacimiento = form.cleaned_data['nacimiento']
+            direccion = form.cleaned_data.get('direccion', '')
             telefono = form.cleaned_data['telefono']
-            correo = form.cleaned_data['correo']
-            telefono2 = form.cleaned_data['telefono2']
-            correo2 = form.cleaned_data['correo2']
+            correo = form.cleaned_data.get('correo', '')
 
-            cliente = Cliente(cedula=cedula,nombre=nombre,apellido=apellido,
-                direccion=direccion,nacimiento=nacimiento,telefono=telefono,
-                correo=correo,telefono2=telefono2,correo2=correo2)
+            # Crea y guarda el nuevo cliente
+            cliente = Cliente(
+                cedula=cedula,
+                nombre=nombre,
+                apellido=apellido,
+                direccion=direccion,
+                telefono=telefono,
+                correo=correo
+            )
             cliente.save()
-            form = ClienteFormulario()
 
-            messages.success(request, 'Ingresado exitosamente bajo la ID %s.' % cliente.id)
+            messages.success(request, f'Ingresado exitosamente bajo la ID {cliente.id}.')
             request.session['clienteProcesado'] = 'agregado'
             return HttpResponseRedirect("/inventario/agregarCliente")
         else:
-            #De lo contrario lanzara el mismo formulario
-            return render(request, 'inventario/cliente/agregarCliente.html', {'form': form})        
+            return render(request, 'inventario/cliente/agregarCliente.html', {'form': form})
 
-    def get(self,request):
+    def get(self, request):
         form = ClienteFormulario()
-        #Envia al usuario el formulario para que lo llene
-        contexto = {'form':form , 'modo':request.session.get('clienteProcesado')} 
-        contexto = complementarContexto(contexto,request.user)         
+        contexto = {'form': form, 'modo': request.session.get('clienteProcesado')}
         return render(request, 'inventario/cliente/agregarCliente.html', contexto)
 #Fin de vista-----------------------------------------------------------------------------#        
 
@@ -2763,6 +2761,61 @@ class VentasView(View):
             messages.success(request, 'Venta eliminada correctamente.')
             return redirect('ventas')
 
+
+
+
+
+#Fin de vista--------------------------------------------------------------------------------
+##
+## C L I E N T E S 
+##
+
+class AssignCartToClientView(LoginRequiredMixin, View):
+    def get(self, request):
+        # Obtener el carrito actual
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+        cart_items = CartItem.objects.filter(cart=cart)
+        clientes = Cliente.objects.all()
+        return render(request, 'inventario/carrito.html', {'cart_items': cart_items, 'clientes': clientes})
+
+    def post(self, request):
+        cliente_id = request.POST.get('cliente_id')
+        if not cliente_id:
+            messages.error(request, "No se especificó un cliente.")
+            return redirect('checkout')
+
+        cliente = get_object_or_404(Cliente, pk=cliente_id)
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        cart_items = CartItem.objects.filter(cart=cart)
+
+        if not cart_items.exists():
+            messages.error(request, "No hay productos en el carrito.")
+            return redirect('checkout')
+
+        # Crear una venta/compra asignada al cliente
+        purchase = Purchase.objects.create(user=request.user, cliente=cliente)
+
+        for item in cart_items:
+            PurchaseItem.objects.create(
+                purchase=purchase,
+                product=item.product,
+                quantity=item.quantity,
+                price=item.product.precio
+            )
+            # Opcional: Disminuir el stock del producto
+            item.product.disponible -= item.quantity
+            item.product.save()
+
+        # Limpiar el carrito después de asignarlo al cliente
+        cart_items.delete()
+
+        messages.success(request, f"Compra asignada exitosamente a {cliente.nombre} {cliente.apellido}.")
+        return redirect('lista_de_clientes')  # Redirige a la lista de clientes o a otra vista relevante
+    
+class ApiClientes(APIView):
+    def get(self, request, *args, **kwargs):
+        clientes = Cliente.objects.all().values('id', 'nombre', 'apellido')
+        return Response(list(clientes))
 
 
 

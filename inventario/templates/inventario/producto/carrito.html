@@ -89,6 +89,10 @@
                                 </select>
                                 <button type="submit" class="btn btn-primary" id="finalize-purchase-button">Finalizar Compra</button>
                             </form>
+                                                                                            <!-- Botón para agregar a cliente -->
+                                <button id="add-to-client-button" class="btn btn-warning" data-toggle="modal" data-target="#clientModal">
+                                    Agregar a cliente
+                                </button>
                         </div>
                     </div>
                 </div>
@@ -117,6 +121,40 @@
           </form>
         </div>
       </div>
+    </div>
+</div>
+
+<!-- Modal para seleccionar cliente -->
+<div class="modal fade" id="clientModal" tabindex="-1" role="dialog" aria-labelledby="clientModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="clientModalLabel">Seleccionar Cliente</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Contenido del modal para seleccionar cliente -->
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Apellido</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="client-table-body">
+                        <!-- Las filas se cargarán dinámicamente aquí -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" onclick="assignCartToClient()">Asignar a Cliente</button>
+            </div>
+        </div>
     </div>
 </div>
 

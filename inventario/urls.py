@@ -45,6 +45,8 @@ path('agregarCliente', views.AgregarCliente.as_view(), name='agregarCliente'),
 path('importarClientes', views.ImportarClientes.as_view(), name='importarClientes'),
 path('exportarClientes', views.ExportarClientes.as_view(), name='exportarClientes'),
 path('editarCliente/<int:p>', views.EditarCliente.as_view(), name='editarCliente'),
+path('api/clientes/', views.ApiClientes.as_view(), name='api_clientes'),
+
 
 path('emitirFactura', views.EmitirFactura.as_view(), name='emitirFactura'),
 path('detallesDeFactura', views.DetallesFactura.as_view(), name='detallesDeFactura'),

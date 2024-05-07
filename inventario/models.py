@@ -191,16 +191,12 @@ class PrecioScraping(models.Model):
 
 #------------------------------------------CLIENTE--------------------------------------
 class Cliente(models.Model):
-    #id
-    cedula = models.CharField(max_length=12, unique=True)
+    cedula = models.CharField(max_length=12, unique=True, blank=True, null=True)  # Opcional
     nombre = models.CharField(max_length=40)
     apellido = models.CharField(max_length=40)
-    direccion = models.CharField(max_length=200)
-    nacimiento = models.DateField()
+    direccion = models.CharField(max_length=200, blank=True, null=True)  # Opcional
     telefono = models.CharField(max_length=20)
-    telefono2 = models.CharField(max_length=20,null=True)
-    correo = models.CharField(max_length=100)
-    correo2 = models.CharField(max_length=100,null=True)
+    correo = models.CharField(max_length=100, blank=True, null=True)  # Opcional
 
     @classmethod
     def numeroRegistrados(self):
