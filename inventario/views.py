@@ -12,7 +12,7 @@ from django.contrib.auth import authenticate, login, logout
 #verifica si el usuario esta logeado
 from django.contrib.auth.mixins import LoginRequiredMixin
 from decimal import Decimal, getcontext, ROUND_HALF_UP
-from .models import Categoria, Cart, CartItem, Purchase, Impuesto, Cliente
+from .models import Categoria, Cart, CartItem, Purchase, Impuesto, Cliente, ClienteProducto, PurchaseItem
 from .forms import CategoriaForm
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from .models import PrecioScraping
@@ -51,6 +51,7 @@ from reportlab.lib.pagesizes import landscape
 from django.views.decorators.http import require_POST
 from rest_framework.views import APIView 
 from rest_framework.response import Response
+from .serializers import ProductoSerializer
 
 
 
@@ -2457,6 +2458,18 @@ class RemoveFromCartView(View):
 
 
 class Checkout(View):
+    def get(self, request):
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        cart_items = CartItem.objects.filter(cart=cart)
+        if not cart_items:
+            messages.info(request, "Tu carrito está vacío.")
+            return redirect('inventario/producto/carrito.html')
+        context = {
+            'cart_items': cart_items,
+            'total': sum(item.product.precio * item.quantity for item in cart_items)
+        }
+        return render(request, 'inventario/producto/carrito.html', context)
+
     def post(self, request):
         impuesto_id = request.POST.get('impuesto_id')
         impuesto = get_object_or_404(Impuesto, id=impuesto_id)
@@ -2465,7 +2478,7 @@ class Checkout(View):
 
         if not cart_items:
             messages.error(request, "Tu carrito está vacío.")
-            return redirect('inventario:cart')
+            return redirect('inventario/producto/carrito.html')
 
         pdf_buffer = BytesIO()
         page_width = 164  # Ancho en puntos para 58 mm
@@ -2771,51 +2784,154 @@ class VentasView(View):
 ##
 
 class AssignCartToClientView(LoginRequiredMixin, View):
-    def get(self, request):
-        # Obtener el carrito actual
-        cart, _ = Cart.objects.get_or_create(user=request.user)
-        cart_items = CartItem.objects.filter(cart=cart)
-        clientes = Cliente.objects.all()
-        return render(request, 'inventario/carrito.html', {'cart_items': cart_items, 'clientes': clientes})
-
     def post(self, request):
-        cliente_id = request.POST.get('cliente_id')
+        try:
+            data = json.loads(request.body.decode('utf-8'))  # Decodifica y parsea el JSON
+            cliente_id = data.get('cliente_id')
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'message': 'Invalid JSON'}, status=400)
+
         if not cliente_id:
-            messages.error(request, "No se especificó un cliente.")
-            return redirect('checkout')
+            return JsonResponse({'success': False, 'message': "No se especificó un cliente."}, status=400)
 
         cliente = get_object_or_404(Cliente, pk=cliente_id)
         cart, created = Cart.objects.get_or_create(user=request.user)
         cart_items = CartItem.objects.filter(cart=cart)
 
         if not cart_items.exists():
-            messages.error(request, "No hay productos en el carrito.")
-            return redirect('checkout')
-
-        # Crear una venta/compra asignada al cliente
-        purchase = Purchase.objects.create(user=request.user, cliente=cliente)
+            return JsonResponse({'success': False, 'message': "No hay productos en el carrito."}, status=400)
 
         for item in cart_items:
-            PurchaseItem.objects.create(
-                purchase=purchase,
-                product=item.product,
-                quantity=item.quantity,
-                price=item.product.precio
+            ClienteProducto.objects.create(
+                cliente=cliente,
+                producto=item.product,
+                cantidad=item.quantity
             )
-            # Opcional: Disminuir el stock del producto
             item.product.disponible -= item.quantity
             item.product.save()
 
-        # Limpiar el carrito después de asignarlo al cliente
         cart_items.delete()
 
-        messages.success(request, f"Compra asignada exitosamente a {cliente.nombre} {cliente.apellido}.")
-        return redirect('lista_de_clientes')  # Redirige a la lista de clientes o a otra vista relevante
+        return JsonResponse({'success': True, 'message': f"Productos asignados exitosamente a {cliente.nombre} {cliente.apellido}."})
+
+
     
 class ApiClientes(APIView):
     def get(self, request, *args, **kwargs):
         clientes = Cliente.objects.all().values('id', 'nombre', 'apellido')
         return Response(list(clientes))
+    
+
+def get_cliente_productos(request, cliente_id):
+    # Asumiendo que ClienteProducto tiene una FK 'producto' a Producto
+    cliente_productos = ClienteProducto.objects.filter(cliente_id=cliente_id).select_related('producto')
+    serializer = ProductoSerializer([cp.producto for cp in cliente_productos], many=True, context={'request': request})
+    return JsonResponse(serializer.data, safe=False)
+
+
+
+
+class ClientProductsView(View):
+    print("se llamo a la funcion")
+    def get(self, request, client_id):
+        try:
+            cliente = Cliente.objects.get(pk=client_id)
+            # Aseguramos la carga eficiente de los datos relacionados del producto
+            productos_cliente = ClienteProducto.objects.filter(cliente=cliente).select_related('producto')
+            productos_data = [
+                {
+                    'descripcion': pc.producto.descripcion,
+                    'cantidad': pc.cantidad,
+                    'precio': float(pc.producto.precio)  # Asegúrate de que el modelo Producto tiene un campo 'precio'
+                }
+                for pc in productos_cliente
+            ]
+            return JsonResponse(productos_data, safe=False)
+        except Cliente.DoesNotExist:
+            return JsonResponse({'error': 'Cliente no encontrado'}, status=404)
+
+
+        
+class ClienteProductosAPIView(APIView):
+    def get(self, request, cliente_id):
+        cliente_productos = ClienteProducto.objects.filter(cliente_id=cliente_id).select_related('producto')
+        productos = [cp.producto for cp in cliente_productos]
+        print("Productos antes de serializar:", productos)
+        for producto in productos:
+            print("Producto:", producto.descripcion, "Precio:", producto.precio)
+        serializer = ProductoSerializer(productos, many=True, context={'request': request})
+        data = serializer.data
+        print("Datos serializados:", data)
+        return Response(data)
+
+
+
+
+        
+class PagarCuentaClienteView(View):
+    def post(self, request, cliente_id):
+        cliente = get_object_or_404(Cliente, pk=cliente_id)
+        productos_cliente = ClienteProducto.objects.filter(cliente=cliente)
+
+        if not productos_cliente.exists():
+            messages.error(request, "No hay productos registrados en la cuenta de este cliente.")
+            return redirect('ruta_a_listar_clientes')
+
+        pdf_buffer = BytesIO()
+        p = canvas.Canvas(pdf_buffer, pagesize=letter)
+        p.setFont("Helvetica", 12)
+
+        y = 750  # Comenzar desde arriba en una página tamaño carta
+        self.draw_wrapped_text(p, "Recibo de Pago de Cuenta", 100, y, 400)
+        y -= 30
+
+        total_sin_impuestos = sum(item.producto.precio * item.cantidad for item in productos_cliente)
+        recargo = Decimal('1.10')  # Usa Decimal para definir el porcentaje de recargo
+        total_con_recargo = total_sin_impuestos * recargo  # Ahora ambos son Decimals
+
+        for item in productos_cliente:
+            line = f"{item.producto.descripcion}: {item.cantidad} x ${item.producto.precio} = ${item.producto.precio * Decimal(item.cantidad)}"
+            y = self.draw_wrapped_text(p, line, 80, y, 400)
+
+        y = self.draw_wrapped_text(p, "-----------------------------------------------", 80, y - 20, 400)
+        y = self.draw_wrapped_text(p, f"Total sin impuestos: ${total_sin_impuestos:.2f}", 80, y - 20, 400)
+        y = self.draw_wrapped_text(p, f"Precio por pago con cuenta (10% adicional): ${total_con_recargo:.2f}", 80, y - 20, 400)
+        y = self.draw_wrapped_text(p, f"Fecha de emisión: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}", 80, y - 20, 400)
+        self.draw_wrapped_text(p, "Gracias por Comprar en 4 Ases", 80, y - 30, 400)
+
+        p.showPage()
+        p.save()
+        pdf_buffer.seek(0)
+
+        productos_cliente.delete()  # Eliminar productos tras pagar
+
+        response = HttpResponse(pdf_buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="recibo_pago_cuenta_{cliente_id}.pdf"'
+        return response
+    
+
+    def draw_wrapped_text(self, p, text, x, y, max_width):
+        words = text.split()
+        current_line = ""
+        space_width = p.stringWidth(' ', "Helvetica", 12)
+        line_height = 14  # Altura de línea para separar adecuadamente las líneas de texto
+
+        for word in words:
+            if p.stringWidth(current_line + word, "Helvetica", 12) + space_width > max_width:
+                p.drawString(x, y, current_line)
+                y -= line_height  # Mueve 'y' hacia abajo para la siguiente línea
+                current_line = word + ' '
+            else:
+                current_line += word + ' '
+        if current_line:  # Dibuja la última línea si queda alguna
+            p.drawString(x, y, current_line)
+            y -= line_height  # Ajusta 'y' después de la última línea
+
+        return y  # Retorna la nueva posición de 'y' para continuar dibujando más abajo
+
+
+
+
 
 
 

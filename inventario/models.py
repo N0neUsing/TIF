@@ -217,7 +217,16 @@ class Cliente(models.Model):
 
     @staticmethod
     def formatearCedula(cedula):
-        return format(int(cedula), ',d')        
+        return format(int(cedula), ',d')
+
+class ClienteProducto(models.Model):
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    cantidad = models.IntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.cantidad} de {self.producto.descripcion} para {self.cliente.nombre}"
+        
 #-----------------------------------------------------------------------------------------        
 
 

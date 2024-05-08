@@ -601,15 +601,10 @@ document.addEventListener('input', function (event) {
 
 function loadClients() {
     fetch(`${BASE_URL}/inventario/api/clientes/`)
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
         const tbody = document.getElementById('client-table-body');
-        tbody.innerHTML = ''; // Limpiar filas existentes
+        tbody.innerHTML = '';  // Limpiar filas existentes
         data.forEach(client => {
             const row = tbody.insertRow();
             row.insertCell().textContent = client.id;
@@ -619,17 +614,13 @@ function loadClients() {
             const actionButton = document.createElement('button');
             actionButton.textContent = 'Seleccionar';
             actionButton.className = 'btn btn-primary btn-sm';
-            actionButton.onclick = function() {
-                document.getElementById('client-select').value = client.id; // Asumiendo que aún necesitas este input por alguna razón
-                $('#clientModal').modal('hide'); // Opcional: cerrar el modal al seleccionar
-            };
+            actionButton.onclick = () => assignCartToClient(client.id);
             actionCell.appendChild(actionButton);
         });
     })
-    .catch(error => {
-        console.error('Error al cargar los clientes:', error);
-    });
+    .catch(error => console.error('Error al cargar los clientes:', error));
 }
+
 
 function selectClient(clientId) {
     // Aquí puedes manejar el evento cuando un usuario selecciona un cliente
@@ -637,9 +628,13 @@ function selectClient(clientId) {
     document.getElementById('client-select').value = clientId; // Asume que hay un input para almacenar el ID seleccionado
 }
 
-function assignCartToClient() {
-    const clientId = document.getElementById('client-select').value;
-    fetch(`${BASE_URL}/inventario/asignar-carrito-a-cliente/`, {
+// Función para asignar el carrito a un cliente seleccionado
+function assignCartToClient(clientId) {
+    console.log("Cliente ID enviado:", clientId);  // Asegúrate de que el cliente_id está siendo enviado
+
+    const url = `${BASE_URL}/inventario/asignar-carrito-a-cliente/`;
+    console.log("URL completa:", url);  // Verifica la URL completa
+    fetch(url, {
         method: 'POST',
         headers: {
             'X-CSRFToken': getCookie('csrftoken'),
@@ -647,21 +642,28 @@ function assignCartToClient() {
         },
         body: JSON.stringify({ cliente_id: clientId })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP status ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
-            showAlert('Compra asignada y finalizada correctamente', 'success');
-            $('#clientModal').modal('hide');
-            window.location.reload();  // Recargar la página para reflejar los cambios
+            alert('Carrito asignado exitosamente al cliente.');
+            location.reload(); // Actualiza la página o redirige según sea necesario
         } else {
-            showAlert(data.message, 'error');
+            alert('Error al asignar el carrito al cliente: ' + data.message);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert('Error al asignar y finalizar la compra', 'error');
+        alert('Error técnico al asignar el carrito al cliente.');
     });
 }
+
+
+
 
 
 function finalizePurchase() {
@@ -698,6 +700,71 @@ $('#clientModal').on('show.bs.modal', function() {
     }
 });
 
-document.addEventListener('DOMContentLoaded', function() {
-    attachEventListenersToButtons();
-});
+function mostrarProductosCliente(clienteId) {
+    const url = `${BASE_URL}/inventario/api/cliente/${clienteId}/productos/`;
+    const pagarBtn = document.getElementById('pagarBtn');
+    pagarBtn.setAttribute('data-cliente-id', clienteId);  // Guarda el clienteId en el botón
+
+    fetch(url)
+    .then(response => response.json())
+    .then(data => {
+        console.log("Datos recibidos:", data);
+        const tbody = document.getElementById('productosClienteTable').getElementsByTagName('tbody')[0];
+        tbody.innerHTML = '';
+        let totalSinImpuestos = 0;
+
+        data.forEach(producto => {
+            let precio = parseFloat(producto.precio);
+            let subtotal = producto.cantidad * precio;
+            totalSinImpuestos += subtotal;
+            let row = tbody.insertRow();
+            row.insertCell(0).textContent = producto.descripcion;
+            row.insertCell(1).textContent = producto.cantidad;
+            row.insertCell(2).textContent = `$${precio.toFixed(2)}`;
+            row.insertCell(3).textContent = `$${subtotal.toFixed(2)}`;
+        });
+
+        document.getElementById('totalConRecargo').textContent = `$${(totalSinImpuestos * 1.10).toFixed(2)}`;
+        $('#productosClienteModal').modal('show');
+    })
+    .catch(error => {
+        console.error('Error al cargar los productos del cliente:', error);
+    });
+}
+
+
+
+//
+// SALDAR CUENTA
+//
+function pagarCuentaCliente(clienteId) {
+    const url = `${BASE_URL}/inventario/pagar-cuenta-cliente/${clienteId}/`; // Modifica la URL para incluir el cliente_id
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP status ${response.status}`);
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `recibo_${clienteId}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error técnico al procesar el pago del cliente.');
+    });
+}
+
+

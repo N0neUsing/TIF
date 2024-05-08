@@ -23,6 +23,7 @@ path('preciosProducto', views.PreciosProducto.as_view(), name='preciosProducto')
 path('api/producto/<str:codigo_barra>/', views.ObtenerProductoPorCodigo.as_view(), name='obtener_producto_por_codigo'),
 path('api/precioProducto/<int:id>/', views.PrecioProductoAPI.as_view(), name='precioProductoAPI'),
 path('actualizar-precio/<int:product_id>/', views.UpdateProductPriceView.as_view(), name='actualizar-precio'),
+path('pagar-cuenta-cliente/', views.PagarCuentaClienteView.as_view(), name='pagar-cuenta-cliente'),
 
 
 
@@ -46,6 +47,9 @@ path('importarClientes', views.ImportarClientes.as_view(), name='importarCliente
 path('exportarClientes', views.ExportarClientes.as_view(), name='exportarClientes'),
 path('editarCliente/<int:p>', views.EditarCliente.as_view(), name='editarCliente'),
 path('api/clientes/', views.ApiClientes.as_view(), name='api_clientes'),
+path('api/cliente/<int:client_id>/productos/', views.ClientProductsView.as_view(), name='client-products'),
+path('asignar-carrito-a-cliente/', views.AssignCartToClientView.as_view(), name='assign-cart-to-client'),
+path('pagar-cuenta-cliente/<int:cliente_id>/', views.PagarCuentaClienteView.as_view(), name='pagar-cuenta-cliente'),
 
 
 path('emitirFactura', views.EmitirFactura.as_view(), name='emitirFactura'),
