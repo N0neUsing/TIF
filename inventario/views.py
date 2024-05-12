@@ -52,6 +52,8 @@ from django.views.decorators.http import require_POST
 from rest_framework.views import APIView 
 from rest_framework.response import Response
 from .serializers import ProductoSerializer
+from django.conf import settings
+from django.db.models import Q
 
 
 
@@ -2511,6 +2513,8 @@ class Checkout(View):
         y = self.draw_wrapped_text(p, f"Total: ${total_con_impuestos:.2f}", 10, y - 10, page_width - 20)
         y = self.draw_wrapped_text(p, f"Fecha de Emisión: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}", 10, y - 10, page_width - 20)
         self.draw_wrapped_text(p, "Gracias por Comprar en 4 Ases", 10, y - 30, page_width - 20)
+        y = self.draw_wrapped_text(p, "                                  ", 10, y - 10, page_width - 20)
+        y = self.draw_wrapped_text(p, "                                  ", 10, y - 10, page_width - 20)
 
         p.showPage()
         p.save()
@@ -2564,6 +2568,25 @@ class UpdateProductPriceView(View):
         except Exception as e:
             print(f"Error al actualizar el precio: {str(e)}")
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+def buscar_productos(request):
+    query = request.GET.get('q', '')
+    productos = Producto.objects.filter(
+        Q(descripcion__icontains=query) | Q(codigo_barra__icontains=query)
+    )[:10]
+
+    results = [{
+        'id': producto.id,
+        'text': producto.descripcion,
+        'codigo_barra': producto.codigo_barra,
+        'precio': float(producto.precio) if producto.precio else None,
+        'cantidad': producto.disponible if producto.disponible is not None else 0,
+        'imagen_url': producto.imagen_producto.url if producto.imagen_producto else '/path/to/default/image.png'
+    } for producto in productos]
+
+    print(results)  # Esto mostrará los resultados en la consola del servidor
+    return JsonResponse({'results': results})
+
 
 
 

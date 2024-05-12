@@ -24,6 +24,7 @@ path('api/producto/<str:codigo_barra>/', views.ObtenerProductoPorCodigo.as_view(
 path('api/precioProducto/<int:id>/', views.PrecioProductoAPI.as_view(), name='precioProductoAPI'),
 path('actualizar-precio/<int:product_id>/', views.UpdateProductPriceView.as_view(), name='actualizar-precio'),
 path('pagar-cuenta-cliente/', views.PagarCuentaClienteView.as_view(), name='pagar-cuenta-cliente'),
+path('api/buscar-productos/', views.buscar_productos, name='buscar_productos'),
 
 
 

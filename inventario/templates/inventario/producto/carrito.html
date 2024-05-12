@@ -22,6 +22,11 @@
                     <div class="card-block">
                         <h3 class="title">Productos en el Carrito</h3>
                         <button id="startScanButton" class="btn btn-primary" data-toggle="modal" data-target="#scanModalCarrito">Escanear Producto</button>
+                        <h3 class="title">Buscar Producto</h3>
+                        <div class="search-container">
+                            <input type="text" id="product-search" class="form-control" placeholder="Escribe nombre o código de barras...">
+                            <button id="search-button" class="btn btn-primary">Buscar</button>
+                        </div>                    
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>
@@ -153,6 +158,36 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
                 <button type="button" class="btn btn-primary" onclick="assignCartToClient()">Asignar a Cliente</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para mostrar los resultados de búsqueda -->
+<div class="modal fade" id="searchResultsModal" tabindex="-1" role="dialog" aria-labelledby="searchResultsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchResultsModalLabel">Resultados de Búsqueda</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Imagen</th>
+                            <th>Producto</th>
+                            <th>Precio</th>
+                            <th>Cantidad</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="search-results-body">
+                        <!-- Los resultados se llenarán dinámicamente aquí -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

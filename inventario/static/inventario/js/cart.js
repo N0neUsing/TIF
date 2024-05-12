@@ -768,3 +768,37 @@ function pagarCuentaCliente(clienteId) {
 }
 
 
+document.getElementById('search-button').addEventListener('click', function() {
+    var query = document.getElementById('product-search').value;
+    if (query.length > 0) { // Asegúrate de que no se haga una búsqueda vacía
+        $.ajax({
+            url: '/inventario/api/buscar-productos/',
+            data: { q: query },
+            success: function(data) {
+                var tbody = document.getElementById('search-results-body');
+                tbody.innerHTML = ''; // Limpia resultados anteriores
+                data.results.forEach(function(product) {
+                    var row = `<tr>
+                        <td><img src="${product.imagen_url}" alt="${product.text}" height="50"></td>
+                        <td>${product.text}</td>
+                        <td>${product.precio ? `$${product.precio.toFixed(2)}` : 'N/A'}</td>
+                        <td>${product.cantidad}</td>
+                        <td><button class="btn btn-primary" onclick="addToCart(${product.id})">Agregar</button></td>
+                    </tr>`;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+                $('#searchResultsModal').modal('show'); // Muestra el modal con los resultados
+            },
+            error: function(xhr, status, error) {
+                console.error("Error en la solicitud AJAX:", status, error);
+            }
+        });
+    }
+});
+
+
+
+
+
+
+
