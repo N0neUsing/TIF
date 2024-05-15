@@ -28,14 +28,15 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 # settings.py
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SAMESITE = 'Lax'  # Puedes cambiar a 'Strict' en producción si es necesario
 
 
-CSRF_TRUSTED_ORIGINS = ["https://sistema-delvalle-noneuser.loca.lt","192.168.0.116", "http://localhost:8000",]
+CSRF_TRUSTED_ORIGINS = ["https://sistema-delvalle-noneuser.loca.lt", "192.168.0.116", 'http://4ases.noneusers.online', "http://localhost:8000",]
 CORS_ALLOWED_ORIGINS = [
     'https://sistema-delvalle-noneuser.loca.lt',
+    'http://4ases.noneusers.online',
     'http://localhost:8000',
                         ]
 
@@ -154,9 +155,11 @@ STATICFILES_DIRS = [
 
 AUTH_USER_MODEL = 'inventario.Usuario' # modelo de usuario
 CSRF_TRUSTED_ORIGINS = [    'https://sistema-delvalle-noneuser.loca.lt',
+                            'http://4ases.noneusers.online'
                             'http://localhost:8000',]
 CORS_ORIGIN_WHITELIST = [
         'https://sistema-delvalle-noneuser.loca.lt',
+        'http://4ases.noneusers.online',
         'http://localhost:8000',
 ]
 
@@ -188,5 +191,6 @@ LOGIN_URL = '/inventario/login'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     'https://sistema-delvalle-noneuser.loca.lt',
+    'http://4ases.noneusers.online',
     'http://localhost:8000',  # Ajusta esto a tu configuración
 ]
