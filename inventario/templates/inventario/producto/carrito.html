@@ -51,7 +51,7 @@
                                         </td>
                                         <td>{{ item.product.descripcion }}</td>
                                         <td>
-                                            <input type="number" name="quantity" value="{{ item.quantity }}" min="1">
+                                            <input type="number" name="quantity" value="{{ item.quantity }}" min="1" data-product-id="{{ item.product.id }}">
                                             <input type="number" name="desired-price" class="desired-price" data-product-id="{{ item.product.id }}" placeholder="Precio deseado" style="width: 80px;" min="0.01" step="0.01">
                                             <button type="button" class="btn btn-primary btn-update-cart" data-product-id="{{ item.product.id }}">Actualizar</button>
                                         </td>
@@ -87,7 +87,7 @@
                             <h4>Total: <span class="total-carrito">$0.00</span></h4>
                             <form method="post" action="{% url 'inventario:checkout' %}">
                                 {% csrf_token %}
-                                <select name="impuesto_id">
+                                <select id="impuesto-select" name="impuesto_id">
                                     {% for impuesto in impuestos %}
                                     <option value="{{ impuesto.id }}">{{ impuesto.nombre }} - {{ impuesto.tasa }}%</option>
                                     {% endfor %}

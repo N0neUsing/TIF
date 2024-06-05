@@ -54,6 +54,7 @@ from rest_framework.response import Response
 from .serializers import ProductoSerializer
 from django.conf import settings
 from django.db.models import Q
+from unidecode import unidecode
 
 
 
@@ -2405,10 +2406,7 @@ class CartView(View):
         
 class UpdateCartItemView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
-        print("Cuerpo de la solicitud recibido:", request.body)
         body = json.loads(request.body.decode('utf-8'))
-        print("Cuerpo de la solicitud:", body)
-
         if not request.user.is_authenticated:
             return JsonResponse({'success': False, 'message': 'Usuario no autenticado.'}, status=401)
 
@@ -2433,8 +2431,12 @@ class UpdateCartItemView(LoginRequiredMixin, View):
             cart_item.save()
             new_subtotal = cart_item.quantity * product.precio
             total_sin_impuestos = sum(item.quantity * item.product.precio for item in CartItem.objects.filter(cart=cart_item.cart))
-            impuesto = Impuesto.objects.get(nombre="IVA")  # Asumiendo que se aplica el IVA a todos los productos
-            total_con_impuestos = total_sin_impuestos * (1 + impuesto.tasa / 100)
+            impuesto_id = request.GET.get('impuesto_id')
+            if impuesto_id:
+                impuesto = get_object_or_404(Impuesto, id=impuesto_id)
+                total_con_impuestos = total_sin_impuestos * (1 + impuesto.porcentaje / 100)
+            else:
+                total_con_impuestos = total_sin_impuestos
 
             return JsonResponse({
                 'success': True,
@@ -2444,6 +2446,8 @@ class UpdateCartItemView(LoginRequiredMixin, View):
             })
         except Exception as e:
             return JsonResponse({'success': False, 'message': f'Error al actualizar el carrito: {str(e)}'}, status=500)
+
+
 
 class RemoveFromCartView(View):
     def get(self, request, *args, **kwargs):
@@ -2569,11 +2573,15 @@ class UpdateProductPriceView(View):
             print(f"Error al actualizar el precio: {str(e)}")
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
+
 def buscar_productos(request):
-    query = request.GET.get('q', '')
-    productos = Producto.objects.filter(
-        Q(descripcion__icontains=query) | Q(codigo_barra__icontains=query)
-    )[:10]
+    query = unidecode(request.GET.get('q', '').lower())  # Convertir el query a minúsculas y eliminar acentos
+
+    # Normalizar las descripciones y los códigos de barra en la consulta
+    productos = Producto.objects.all()
+    productos = [producto for producto in productos if 
+                 unidecode(producto.descripcion.lower()).find(query) != -1 or 
+                 unidecode(producto.codigo_barra.lower()).find(query) != -1]
 
     results = [{
         'id': producto.id,
@@ -2586,6 +2594,7 @@ def buscar_productos(request):
 
     print(results)  # Esto mostrará los resultados en la consola del servidor
     return JsonResponse({'results': results})
+
 
 
 
@@ -2642,6 +2651,21 @@ class AgregarProductoPorCodigo(LoginRequiredMixin, View):
         })
     
 
+class TotalConImpuestosView(LoginRequiredMixin, View):
+    def get(self, request):
+        impuesto_id = request.GET.get('impuesto_id')
+        impuesto = get_object_or_404(Impuesto, id=impuesto_id)
+        cart = get_object_or_404(Cart, user=request.user)
+
+        total_sin_impuestos = sum(item.product.precio * item.quantity for item in cart.items.all())
+        total_con_impuestos = total_sin_impuestos * (1 + impuesto.tasa / 100)
+
+        # Agregar registros para depuración
+        print(f"Total sin impuestos: {total_sin_impuestos}")
+        print(f"Impuesto aplicado: {impuesto.tasa}")
+        print(f"Total con impuestos: {total_con_impuestos}")
+
+        return JsonResponse({'total_con_impuestos': float(total_con_impuestos)})
 
 #---------API para carrito-----------------------------------------------------------------------------
 class GetCartItemsView(LoginRequiredMixin, generics.ListAPIView):

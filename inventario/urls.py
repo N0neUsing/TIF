@@ -87,6 +87,8 @@ path('impuestos/', views.ListarImpuestos.as_view(), name='listarImpuestos'),
 path('impuestos/crear/', views.CrearImpuesto.as_view(), name='crearImpuesto'),
 path('impuestos/editar/<int:id>/', views.EditarImpuesto.as_view(), name='editarImpuesto'),
 path('impuestos/eliminar/<int:id>/', views.EliminarImpuesto.as_view(), name='eliminarImpuesto'),
+path('api/total-con-impuestos/', views.TotalConImpuestosView.as_view(), name='total_con_impuestos'),
+
 
 path('ventas/listar_ventas/', views.VentasView.as_view(), name='listar_ventas'),
 

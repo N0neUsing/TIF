@@ -1,13 +1,12 @@
-
 console.log("cart.js cargado.");
 const BASE_URL = 'https://sistema-delvalle-noneuser.loca.lt';
-//const BASE_URL = 'http://localhost:8000';
+// const BASE_URL = 'http://localhost:8000';
 const MEDIA_URL = '/media/';
-
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM completamente cargado y analizado.");
     fetchCartAndUpdateUI();
+
     document.querySelectorAll('.add-to-cart').forEach(button => {
         button.addEventListener('click', () => {
             let productId = button.dataset.productId;
@@ -15,49 +14,58 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-document.querySelectorAll('.btn-update-cart').forEach(button => {
-    button.addEventListener('click', event => {
-        const productId = button.getAttribute('data-product-id');
-        const quantityInput = document.querySelector(`#product-row-${productId} input[name='quantity']`);
-        const desiredPriceInput = document.querySelector(`#product-row-${productId} input[name='desired-price']`);
+    document.querySelectorAll('.btn-update-cart').forEach(button => {
+        button.addEventListener('click', event => {
+            const productId = button.getAttribute('data-product-id');
+            const quantityInput = document.querySelector(`#product-row-${productId} input[name='quantity']`);
+            const desiredPriceInput = document.querySelector(`#product-row-${productId} input[name='desired-price']`);
 
-        let quantity;
-        if (desiredPriceInput && desiredPriceInput.value) {
-            const pricePerGram = parseFloat(desiredPriceInput.dataset.pricePerGram); // Asegúrate de que este dato está disponible
-            const desiredPrice = parseFloat(desiredPriceInput.value);
-            quantity = desiredPrice / pricePerGram; // Calcular la cantidad basada en el precio deseado
-            quantityInput.value = quantity.toFixed(2); // Actualizar visualmente el campo de cantidad
-        } else if (quantityInput) {
-            quantity = parseFloat(quantityInput.value);
+            let quantity;
+            if (desiredPriceInput && desiredPriceInput.value) {
+                const pricePerGram = parseFloat(desiredPriceInput.dataset.pricePerGram);
+                const desiredPrice = parseFloat(desiredPriceInput.value);
+                quantity = desiredPrice / pricePerGram;
+                quantityInput.value = quantity.toFixed(2);
+            } else if (quantityInput) {
+                quantity = parseFloat(quantityInput.value);
+            }
+
+            if (quantity && !isNaN(quantity)) {
+                actualizarCarrito(productId, quantity);
+            } else {
+                console.error("La cantidad no es un número válido", quantity);
+            }
+        });
+    });
+
+    document.querySelectorAll('input[name="quantity"]').forEach(input => {
+        input.addEventListener('input', event => {
+            const productId = event.target.closest('tr').id.split('-')[2];
+            const quantity = parseFloat(event.target.value);
+            updateSubtotal(productId, quantity);
+            actualizarTotalCarrito();
+        });
+    });
+
+    document.addEventListener('click', function(event) {
+        if (event.target.matches('.btn-update-cart')) {
+            updateCartEventListener(event);
+        } else if (event.target.matches('.remove-from-cart')) {
+            removeFromCartEventListener(event);
         }
-
-        if (quantity && !isNaN(quantity)) {
-            actualizarCarrito(productId, quantity);
-        } else {
-            console.error("La cantidad no es un número válido", quantity);
-        }
-    });
-});
-    
-
-document.addEventListener('click', function(event) {
-    if (event.target.matches('.btn-update-cart')) {
-        updateCartEventListener(event);
-    } else if (event.target.matches('.remove-from-cart')) {
-        removeFromCartEventListener(event);
-    }
-});
-
-document.querySelectorAll('.expand-on-hover').forEach(img => {
-    img.addEventListener('mouseover', () => {
-        // Implementación simplificada sin necesidad de manejar el timer externamente
-        img.classList.add('hovered');
     });
 
-    img.addEventListener('mouseout', () => {
-        img.classList.remove('hovered');
+    document.querySelector('#impuesto-select').addEventListener('change', actualizarTotalCarritoConImpuestos);
+
+    document.querySelectorAll('.expand-on-hover').forEach(img => {
+        img.addEventListener('mouseover', () => {
+            img.classList.add('hovered');
+        });
+
+        img.addEventListener('mouseout', () => {
+            img.classList.remove('hovered');
+        });
     });
-});
 });
 
 function actualizarTotalCarrito() {
@@ -70,13 +78,12 @@ function actualizarTotalCarrito() {
     });
     console.log("Total calculado:", total);
     const totalCarritoEl = document.querySelector('.total-carrito');
-    if(totalCarritoEl) {
+    if (totalCarritoEl) {
         totalCarritoEl.textContent = `$${total.toFixed(2)}`;
     } else {
         console.log('Elemento total-carrito no encontrado');
     }
 
-    // Asegúrate de que el botón de finalizar compra siempre esté habilitado
     const finalizePurchaseButton = document.getElementById('finalize-purchase-button');
     if (finalizePurchaseButton) {
         finalizePurchaseButton.removeAttribute('disabled');
@@ -85,7 +92,16 @@ function actualizarTotalCarrito() {
     }
 }
 
+function updateSubtotal(productId, quantity) {
+    const productRow = document.getElementById(`product-row-${productId}`);
+    const priceCell = productRow.querySelector('.product-price');
+    const subtotalCell = productRow.querySelector('.subtotal-cell');
 
+    const price = parseFloat(priceCell.textContent.trim().replace('$', ''));
+    const subtotal = price * quantity;
+
+    subtotalCell.textContent = `$${subtotal.toFixed(2)}`;
+}
 
 function addToCart(productId) {
     fetch(`/inventario/agregar-a-carrito/${productId}/`, {
@@ -130,12 +146,12 @@ function actualizarCarrito(productId, quantityInputValue, desiredPriceInputValue
     }
 
     switch (unitId) {
-        case '3': // Kilogramos
+        case '3':
             if (desiredPriceInputValue !== undefined && desiredPrice > 0) {
                 quantityToSend = desiredPrice / (pricePerUnit * 1000);
             }
             break;
-        case '2': // Gramos
+        case '2':
             if (desiredPriceInputValue !== undefined && desiredPrice > 0) {
                 quantityToSend = desiredPrice / pricePerUnit;
             }
@@ -154,11 +170,16 @@ function actualizarCarrito(productId, quantityInputValue, desiredPriceInputValue
         },
         body: JSON.stringify({ quantity: quantityToSend, unit_id: unitId }),
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
-            document.querySelector(`#product-row-${productId} .subtotal-cell`).textContent = `$${data.new_subtotal.toFixed(2)}`;
-            actualizarTotalCarritoConImpuestos();  // Esta función debería solicitar el total actualizado con impuestos del servidor
+            document.querySelector(`#product-row-${productId} .subtotal-cell`).textContent = `$${parseFloat(data.new_subtotal).toFixed(2)}`;
+            actualizarTotalCarritoConImpuestos();
             showAlert('Cantidad actualizada correctamente', 'success');
         } else {
             showAlert(data.message, 'error');
@@ -171,12 +192,24 @@ function actualizarCarrito(productId, quantityInputValue, desiredPriceInputValue
 }
 
 function actualizarTotalCarritoConImpuestos() {
-    fetch(`${BASE_URL}/inventario/api/total-con-impuestos/`) // Asegúrate de tener esta ruta implementada en Django
-    .then(response => response.json())
+    const impuestoId = document.querySelector('#impuesto-select').value;
+    fetch(`${BASE_URL}/inventario/api/total-con-impuestos/?impuesto_id=${impuestoId}`)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Datos recibidos de la API:', data);
         const totalCarritoEl = document.querySelector('.total-carrito');
         if (totalCarritoEl) {
-            totalCarritoEl.textContent = `$${data.total_con_impuestos.toFixed(2)}`;
+            const totalConImpuestos = parseFloat(data.total_con_impuestos);
+            if (!isNaN(totalConImpuestos)) {
+                totalCarritoEl.textContent = `$${totalConImpuestos.toFixed(2)}`;
+            } else {
+                console.error('Total con impuestos no es un número válido:', data.total_con_impuestos);
+            }
         } else {
             console.log('Elemento total-carrito no encontrado');
         }
@@ -185,7 +218,6 @@ function actualizarTotalCarritoConImpuestos() {
         console.error('Error al obtener el total del carrito con impuestos:', error);
     });
 }
-
 
 function fetchCartAndUpdateUI() {
     console.log("Actualizando el carrito UI...");
@@ -200,66 +232,50 @@ function fetchCartAndUpdateUI() {
         console.log("Respuesta de la API:", data);
         const cartItemsContainer = document.querySelector('#cart-items-container');
 
-        // Verifica si el contenedor del carrito existe
         if (!cartItemsContainer) {
             console.error("El contenedor de ítems del carrito no se encontró.");
-            return; // Detén la ejecución si el contenedor no existe
+            return;
         }
 
-        // Verifica si se recibieron productos en la respuesta
         if (!data || data.length === 0 || !data[0].items || data[0].items.length === 0) {
             console.error('No se encontraron elementos en la respuesta de la API:', data);
             cartItemsContainer.innerHTML = '<tr><td colspan="6">No hay productos en el carrito.</td></tr>';
         } else {
             console.log("Se encontraron elementos en el carrito:", data[0].items);
-            // Limpia el contenedor antes de añadir nuevos productos
             cartItemsContainer.innerHTML = '';
             data[0].items.forEach(item => {
-                renderCartItem(item); // Asegúrate de que esta función añade correctamente cada producto al DOM
+                renderCartItem(item);
             });
-            attachEventListenersToButtons(); // Re-attach event listeners to newly added buttons
+            attachEventListenersToButtons();
         }
 
-        // Llama a actualizarTotalCarrito() después de manejar la visibilidad del pie del carrito
-        actualizarTotalCarrito();
+        actualizarTotalCarritoConImpuestos();
     })
     .catch(error => {
         console.error('Error al actualizar el carrito:', error);
     });
 }
 
-function updateCartItemsUI(data, container) {
-    container.innerHTML = data.length === 0 ? '<tr><td colspan="6">No hay productos en el carrito.</td></tr>' : '';
-    data.forEach(item => container.insertAdjacentHTML('beforeend', renderCartItem(item)));
-}
-
-
 function getUnitAndPrice(productId) {
-    // Simulación de un mapa de unidades y precios por producto
     const productUnitPriceMap = {
-        '1': { unitId: '1', pricePerUnit: 6500 }, // Ejemplo: '1' para piezas
-        '2': { unitId: '3', pricePerUnit: 6500 / 1000 }, // Ejemplo: '3' para kilogramos, precio por gramo
-        // ... otros productos
+        '1': { unitId: '1', pricePerUnit: 6500 },
+        '2': { unitId: '3', pricePerUnit: 6500 / 1000 },
     };
 
-    // Obtener la información de la unidad y el precio por unidad para el productId dado
     const productInfo = productUnitPriceMap[productId];
 
-    // Si no se encuentra la información del producto, devolver valores por defecto o manejar el error adecuadamente
     if (!productInfo) {
         console.error(`Información no encontrada para el producto con ID ${productId}`);
-        return { unitId: '1', pricePerUnit: 0 }; // Valores por defecto o lanzar un error
+        return { unitId: '1', pricePerUnit: 0 };
     }
 
     return productInfo;
 }
 
-
 function renderCartItem(item) {
     const cartItemsContainer = document.querySelector('#cart-items-container');
     const imagePath = item.product.imagen_producto_url ? item.product.imagen_producto_url : `${BASE_URL}/path/to/default/image.png`;
-    
-    // Maneja el caso cuando el producto no tiene precio asignado
+
     let priceContent, pricePerGram, pricePerKilogram;
     if (item.product.precio) {
         pricePerGram = parseFloat(item.product.precio);
@@ -307,15 +323,11 @@ function renderCartItem(item) {
     `;
 
     cartItemsContainer.insertAdjacentHTML('beforeend', itemHTML);
-    
-    // Evento para el botón de agregar precio, si es necesario
-    if(item.product.precio === null) {
-        // Añadir evento para mostrar el modal con el ID priceModal
+
+    if (item.product.precio === null) {
         cartItemsContainer.querySelector(`.btn-add-price[data-product-id="${item.product.id}"]`).addEventListener('click', () => {
             const saveButton = document.getElementById('save-price-button');
-            // Establecer el ID del producto en el botón del modal para saber qué producto se está actualizando
             saveButton.dataset.productId = item.product.id;
-            // Limpiar valor anterior y mostrar el modal
             document.getElementById('modal-product-price').value = '';
             $('#priceModal').modal('show');
         });
@@ -326,13 +338,12 @@ document.addEventListener('input', function(event) {
     if (event.target.matches('.desired-price-input')) {
         const productId = event.target.dataset.productId;
         const grams = parseFloat(event.target.value);
-        const pricePerGram = parseFloat(document.querySelector(`#product-row-${productId} .product-price`).textContent.slice(1)) / 1000; // Suponiendo que el precio es por kilogramo
+        const pricePerGram = parseFloat(document.querySelector(`#product-row-${productId} .product-price`).textContent.slice(1)) / 1000;
         const newSubtotal = grams * pricePerGram;
         document.querySelector(`#product-row-${productId} .subtotal-cell`).textContent = `$${newSubtotal.toFixed(2)}`;
     }
 });
 
-// Función para actualizar el precio basado en la cantidad de gramos ingresada
 function updatePriceBasedOnGrams(inputElement) {
     const grams = parseFloat(inputElement.value);
     const productId = inputElement.dataset.productId;
@@ -341,7 +352,6 @@ function updatePriceBasedOnGrams(inputElement) {
     document.querySelector(`#product-row-${productId} .desired-price-input`).value = newPrice.toFixed(2);
 }
 
-// Función para actualizar el subtotal y la cantidad basado en el precio deseado ingresado
 function updateQuantityAndSubtotalBasedOnDesiredPrice(inputElement) {
     const productId = inputElement.dataset.productId;
     const desiredPrice = parseFloat(inputElement.value);
@@ -354,7 +364,6 @@ function updateQuantityAndSubtotalBasedOnDesiredPrice(inputElement) {
     subtotalCell.textContent = `$${desiredPrice.toFixed(2)}`;
 }
 
-// Función para actualizar el subtotal y el precio deseado basado en los gramos deseados ingresados
 function updatePriceAndSubtotalBasedOnDesiredGrams(inputElement) {
     const productId = inputElement.dataset.productId;
     const desiredGrams = parseFloat(inputElement.value);
@@ -367,8 +376,6 @@ function updatePriceAndSubtotalBasedOnDesiredGrams(inputElement) {
     subtotalCell.textContent = `$${(desiredGrams * pricePerGram).toFixed(2)}`;
 }
 
-
-// Función para actualizar la cantidad de gramos basada en el precio deseado
 function updateQuantityBasedOnPrice(inputElement) {
     const desiredPrice = parseFloat(inputElement.value);
     const productId = inputElement.dataset.productId;
@@ -405,10 +412,11 @@ function attachEventListenersToButtons() {
         input.removeEventListener('input', handleDesiredPriceInput);
         input.addEventListener('input', handleDesiredPriceInput);
     });
+
     document.querySelectorAll('.btn-add-price').forEach(button => {
         button.addEventListener('click', event => {
             const productId = button.dataset.productId;
-            document.getElementById('save-price-button').dataset.productId = productId; // Asegúrate de actualizar el productId aquí para que esté disponible cuando se envíe el formulario
+            document.getElementById('save-price-button').dataset.productId = productId;
             $('#priceModal').modal('show');
         });
     });
@@ -417,28 +425,25 @@ function attachEventListenersToButtons() {
 function handleDesiredPriceInput(event) {
     const input = event.target;
     const productId = input.dataset.productId;
-    const unitId = input.dataset.unitId;  // Asegúrate de que esto se define en el backend y se pasa correctamente
-    const pricePerUnit = parseFloat(input.dataset.pricePerUnit);  // Asumiendo que esto es el precio por gramo si es aplicable
+    const unitId = input.dataset.unitId;
+    const pricePerUnit = parseFloat(input.dataset.pricePerUnit);
     const desiredPrice = parseFloat(input.value);
 
     let quantity;
-    if (unitId === '3') {  // Suponiendo '3' para kilogramos
-        quantity = (desiredPrice / pricePerUnit) * 1000;  // Convierte el precio deseado en kilogramos a la cantidad en gramos
-    } else if (unitId === '2') {  // '2' para gramos
-        quantity = desiredPrice / pricePerUnit;  // Calcula la cantidad directamente en gramos
+    if (unitId === '3') {
+        quantity = (desiredPrice / pricePerUnit) * 1000;
+    } else if (unitId === '2') {
+        quantity = desiredPrice / pricePerUnit;
     } else {
         console.error("Unidad no manejada:", unitId);
-        return;  // Detener si la unidad no es manejable
+        return;
     }
 
     const quantityInput = document.querySelector(`#product-row-${productId} .quantity-input`);
-    quantityInput.value = quantity.toFixed(2);  // Actualiza el input de cantidad
+    quantityInput.value = quantity.toFixed(2);
 
-    actualizarCarrito(productId, quantity.toFixed(2), desiredPrice);  // Asegúrate de que esta función maneje los parámetros correctamente
+    actualizarCarrito(productId, quantity.toFixed(2), desiredPrice);
 }
-
-
-
 
 function updateCartEventListener(event) {
     const button = event.target;
@@ -457,7 +462,6 @@ function updateCartEventListener(event) {
     }
 }
 
-
 function removeFromCartEventListener(event) {
     const button = event.target;
     const productId = button.dataset.productId;
@@ -466,7 +470,7 @@ function removeFromCartEventListener(event) {
         .then(data => {
             if (data.success) {
                 showAlert('Producto eliminado del carrito', 'success');
-                fetchCartAndUpdateUI(); // Refresca los ítems del carrito y el total
+                fetchCartAndUpdateUI();
             } else {
                 showAlert('Error al eliminar del carrito', 'error');
             }
@@ -476,7 +480,6 @@ function removeFromCartEventListener(event) {
             showAlert('Error al eliminar del carrito', 'error');
         });
 }
-
 
 function getCookie(name) {
     let cookieValue = null;
@@ -515,7 +518,7 @@ document.querySelectorAll('.remove-from-cart').forEach(button => {
             .then(response => {
                 if (response.ok) {
                     showAlert('Producto eliminado del carrito', 'success');
-                    fetchCartAndUpdateUI(); // Refresca los ítems del carrito y el total
+                    fetchCartAndUpdateUI();
                 } else {
                     throw new Error('La respuesta de la red no fue ok.');
                 }
@@ -533,7 +536,7 @@ document.querySelectorAll('.btn-add-price').forEach(button => {
         $('#priceModal').modal('show');
         $('#updatePriceForm').on('submit', function(e) {
             e.preventDefault();
-            const productId = document.getElementById('save-price-button').dataset.productId; // Asegúrate de que este ID se actualiza correctamente en otro lugar
+            const productId = document.getElementById('save-price-button').dataset.productId;
             const newPrice = parseFloat(document.getElementById('product-price').value);
             if (!isNaN(newPrice) && newPrice > 0) {
                 actualizarPrecio(productId, newPrice);
@@ -580,31 +583,27 @@ function actualizarPrecio(productId, precio) {
     });
 }
 
-document.addEventListener('input', function (event) {
+document.addEventListener('input', function(event) {
     if (event.target.matches('.desired-price')) {
         var productId = event.target.dataset.productId;
-        var unitId = event.target.dataset.unitId; // Suponiendo que tienes un data attribute para el ID de la unidad
+        var unitId = event.target.dataset.unitId;
         var priceInput = parseFloat(event.target.value);
-        var pricePerUnit = parseFloat(event.target.dataset.pricePerUnit); // Este debe ser el precio por la unidad base
+        var pricePerUnit = parseFloat(event.target.dataset.pricePerUnit);
 
-        // Calcula la cantidad necesaria en base a la unidad base
         var quantity = priceInput / pricePerUnit;
 
-        // Actualiza el input de cantidad y llama a actualizarCarrito con la cantidad y el ID de la unidad
         var quantityInput = document.querySelector(`#product-row-${productId} .quantity-input`);
-        quantityInput.value = quantity.toFixed(2); // Muestra la cantidad en la unidad base
+        quantityInput.value = quantity.toFixed(2);
         actualizarCarrito(productId, quantity, unitId);
     }
 }, false);
-
-// PARTE DE CARRITO A CLIENTE
 
 function loadClients() {
     fetch(`${BASE_URL}/inventario/api/clientes/`)
     .then(response => response.json())
     .then(data => {
         const tbody = document.getElementById('client-table-body');
-        tbody.innerHTML = '';  // Limpiar filas existentes
+        tbody.innerHTML = '';
         data.forEach(client => {
             const row = tbody.insertRow();
             row.insertCell().textContent = client.id;
@@ -621,19 +620,16 @@ function loadClients() {
     .catch(error => console.error('Error al cargar los clientes:', error));
 }
 
-
 function selectClient(clientId) {
-    // Aquí puedes manejar el evento cuando un usuario selecciona un cliente
     console.log('Cliente seleccionado:', clientId);
-    document.getElementById('client-select').value = clientId; // Asume que hay un input para almacenar el ID seleccionado
+    document.getElementById('client-select').value = clientId;
 }
 
-// Función para asignar el carrito a un cliente seleccionado
 function assignCartToClient(clientId) {
-    console.log("Cliente ID enviado:", clientId);  // Asegúrate de que el cliente_id está siendo enviado
+    console.log("Cliente ID enviado:", clientId);
 
     const url = `${BASE_URL}/inventario/asignar-carrito-a-cliente/`;
-    console.log("URL completa:", url);  // Verifica la URL completa
+    console.log("URL completa:", url);
     fetch(url, {
         method: 'POST',
         headers: {
@@ -651,7 +647,7 @@ function assignCartToClient(clientId) {
     .then(data => {
         if (data.success) {
             alert('Carrito asignado exitosamente al cliente.');
-            location.reload(); // Actualiza la página o redirige según sea necesario
+            location.reload();
         } else {
             alert('Error al asignar el carrito al cliente: ' + data.message);
         }
@@ -662,12 +658,7 @@ function assignCartToClient(clientId) {
     });
 }
 
-
-
-
-
 function finalizePurchase() {
-    // Aquí deberías incluir todas las operaciones necesarias para finalizar la compra
     console.log("Finalizando la compra...");
     fetch(`${BASE_URL}/inventario/finalizar-compra/`, {
         method: 'POST',
@@ -675,13 +666,11 @@ function finalizePurchase() {
             'X-CSRFToken': getCookie('csrftoken'),
             'Content-Type': 'application/json'
         },
-        // Incluir cualquier dato necesario para la finalización de la compra
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             showAlert('Compra finalizada correctamente', 'success');
-            // Aquí podrías redirigir al usuario o realizar alguna otra acción post-compra
         } else {
             showAlert('Error al finalizar la compra', 'error');
         }
@@ -692,18 +681,17 @@ function finalizePurchase() {
     });
 }
 
-// Agregar listener para cargar clientes cuando se muestra el modal
 $('#clientModal').on('show.bs.modal', function() {
-    if (!this.dataLoaded) {  // Evitar recargar los datos si ya se han cargado
+    if (!this.dataLoaded) {
         loadClients();
-        this.dataLoaded = true;  // Marcar que los datos han sido cargados
+        this.dataLoaded = true;
     }
 });
 
 function mostrarProductosCliente(clienteId) {
     const url = `${BASE_URL}/inventario/api/cliente/${clienteId}/productos/`;
     const pagarBtn = document.getElementById('pagarBtn');
-    pagarBtn.setAttribute('data-cliente-id', clienteId);  // Guarda el clienteId en el botón
+    pagarBtn.setAttribute('data-cliente-id', clienteId);
 
     fetch(url)
     .then(response => response.json())
@@ -732,13 +720,8 @@ function mostrarProductosCliente(clienteId) {
     });
 }
 
-
-
-//
-// SALDAR CUENTA
-//
 function pagarCuentaCliente(clienteId) {
-    const url = `${BASE_URL}/inventario/pagar-cuenta-cliente/${clienteId}/`; // Modifica la URL para incluir el cliente_id
+    const url = `${BASE_URL}/inventario/pagar-cuenta-cliente/${clienteId}/`;
     fetch(url, {
         method: 'POST',
         headers: {
@@ -767,16 +750,17 @@ function pagarCuentaCliente(clienteId) {
     });
 }
 
-
 document.getElementById('search-button').addEventListener('click', function() {
-    var query = document.getElementById('product-search').value;
-    if (query.length > 0) { // Asegúrate de que no se haga una búsqueda vacía
+    var query = document.getElementById('product-search').value.toLowerCase();
+    query = query.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    if (query.length > 0) {
         $.ajax({
             url: '/inventario/api/buscar-productos/',
             data: { q: query },
             success: function(data) {
                 var tbody = document.getElementById('search-results-body');
-                tbody.innerHTML = ''; // Limpia resultados anteriores
+                tbody.innerHTML = '';
                 data.results.forEach(function(product) {
                     var row = `<tr>
                         <td><img src="${product.imagen_url}" alt="${product.text}" height="50"></td>
@@ -787,7 +771,7 @@ document.getElementById('search-button').addEventListener('click', function() {
                     </tr>`;
                     tbody.insertAdjacentHTML('beforeend', row);
                 });
-                $('#searchResultsModal').modal('show'); // Muestra el modal con los resultados
+                $('#searchResultsModal').modal('show');
             },
             error: function(xhr, status, error) {
                 console.error("Error en la solicitud AJAX:", status, error);
@@ -795,10 +779,3 @@ document.getElementById('search-button').addEventListener('click', function() {
         });
     }
 });
-
-
-
-
-
-
-
