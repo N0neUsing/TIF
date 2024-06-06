@@ -2925,26 +2925,31 @@ class PagarCuentaClienteView(View):
             return redirect('ruta_a_listar_clientes')
 
         pdf_buffer = BytesIO()
-        p = canvas.Canvas(pdf_buffer, pagesize=letter)
-        p.setFont("Helvetica", 12)
+        page_width = 164  # Ancho en puntos para 58 mm
+        page_height = 800  # Altura inicial de la página
+        p = canvas.Canvas(pdf_buffer, pagesize=(page_width, page_height))
+        p.setFont("Helvetica", 8)
 
-        y = 750  # Comenzar desde arriba en una página tamaño carta
-        self.draw_wrapped_text(p, "Recibo de Pago de Cuenta", 100, y, 400)
-        y -= 30
+        y = page_height - 20  # Comenzar desde un margen pequeño
+        y = self.draw_wrapped_text(p, "4 Ases - Recibo de Pago de Cuenta", 10, y, page_width - 20)
 
         total_sin_impuestos = sum(item.producto.precio * item.cantidad for item in productos_cliente)
         recargo = Decimal('1.10')  # Usa Decimal para definir el porcentaje de recargo
         total_con_recargo = total_sin_impuestos * recargo  # Ahora ambos son Decimals
 
         for item in productos_cliente:
-            line = f"{item.producto.descripcion}: {item.cantidad} x ${item.producto.precio} = ${item.producto.precio * Decimal(item.cantidad)}"
-            y = self.draw_wrapped_text(p, line, 80, y, 400)
+            line = f"{item.producto.descripcion}: {item.cantidad} x ${item.producto.precio:.2f} = ${item.producto.precio * Decimal(item.cantidad):.2f}"
+            y = self.draw_wrapped_text(p, line, 10, y - 10, page_width - 20)
+            if y < 40:  # Si la posición y está cerca del final de la página, crear una nueva página
+                p.showPage()
+                p.setFont("Helvetica", 8)
+                y = page_height - 20  # Reiniciar y para la nueva página
 
-        y = self.draw_wrapped_text(p, "-----------------------------------------------", 80, y - 20, 400)
-        y = self.draw_wrapped_text(p, f"Total sin impuestos: ${total_sin_impuestos:.2f}", 80, y - 20, 400)
-        y = self.draw_wrapped_text(p, f"Precio por pago con cuenta (10% adicional): ${total_con_recargo:.2f}", 80, y - 20, 400)
-        y = self.draw_wrapped_text(p, f"Fecha de emisión: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}", 80, y - 20, 400)
-        self.draw_wrapped_text(p, "Gracias por Comprar en 4 Ases", 80, y - 30, 400)
+        y = self.draw_wrapped_text(p, "----------------------------------", 10, y - 10, page_width - 20)
+        y = self.draw_wrapped_text(p, f"Total sin impuestos: ${total_sin_impuestos:.2f}", 10, y - 10, page_width - 20)
+        y = self.draw_wrapped_text(p, f"Precio por pago con cuenta (10% adicional): ${total_con_recargo:.2f}", 10, y - 10, page_width - 20)
+        y = self.draw_wrapped_text(p, f"Fecha de emisión: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}", 10, y - 10, page_width - 20)
+        self.draw_wrapped_text(p, "Gracias por Comprar en 4 Ases", 10, y - 30, page_width - 20)
 
         p.showPage()
         p.save()
@@ -2955,16 +2960,15 @@ class PagarCuentaClienteView(View):
         response = HttpResponse(pdf_buffer, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="recibo_pago_cuenta_{cliente_id}.pdf"'
         return response
-    
 
     def draw_wrapped_text(self, p, text, x, y, max_width):
         words = text.split()
         current_line = ""
-        space_width = p.stringWidth(' ', "Helvetica", 12)
-        line_height = 14  # Altura de línea para separar adecuadamente las líneas de texto
+        space_width = p.stringWidth(' ', "Helvetica", 8)
+        line_height = 10  # Altura de línea para separar adecuadamente las líneas de texto
 
         for word in words:
-            if p.stringWidth(current_line + word, "Helvetica", 12) + space_width > max_width:
+            if p.stringWidth(current_line + word, "Helvetica", 8) + space_width > max_width:
                 p.drawString(x, y, current_line)
                 y -= line_height  # Mueve 'y' hacia abajo para la siguiente línea
                 current_line = word + ' '
@@ -2975,7 +2979,6 @@ class PagarCuentaClienteView(View):
             y -= line_height  # Ajusta 'y' después de la última línea
 
         return y  # Retorna la nueva posición de 'y' para continuar dibujando más abajo
-
 
 
 
