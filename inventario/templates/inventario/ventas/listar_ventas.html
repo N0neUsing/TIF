@@ -2,74 +2,128 @@
 {% load my_filters %}
 
 {% block content %}
-<h2>Listado de Ventas</h2>
-<form method="get" action="">
-    {{ form.as_p }}
-    <button type="submit">Filtrar</button>
-</form>
+<style>
+    .fixed-header-table-container {
+        margin-top: 20px; /* Reducir el margen superior */
+        overflow-x: auto;
+    }
+    .fixed-header-table {
+        table-layout: fixed; /* Cambiar a table-layout fixed */
+        width: 100%;
+    }
+    .fixed-header-table th, .fixed-header-table td {
+        text-align: center;
+        vertical-align: middle;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px; /* Ajusta este valor según necesites */
+    }
+    .fixed-header-table th {
+        position: sticky;
+        top: 0;
+        background-color: white;
+        z-index: 1;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+</style>
 
-<table>
-    <thead>
-        <tr>
-            <th>ID Venta</th>
-            <th>Fecha</th>
-            <th>Total</th>
-            <th>Productos</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for venta in ventas %}
-        <tr>
-            <td>{{ venta.venta_id }}</td>
-            <td>{{ venta.fecha }}</td>
-            <td>{{ venta.total }}</td>
-            <td>
-                <!-- Botón que activa el modal -->
-                <button type="button" class="btn btn-info" data-toggle="modal" data-target="#productosModal{{ venta.venta_id }}">
-                    Ver Productos
-                </button>
-        
-                <!-- Modal -->
-                <div class="modal fade" id="productosModal{{ venta.venta_id }}" tabindex="-1" role="dialog" aria-labelledby="modalTitle" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="modalTitle">Productos de la Venta {{ venta.venta_id }}</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Descripción</th>
-                                            <th>Precio Unitario</th>
-                                            <th>Cantidad</th>
-                                            <th>Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for producto in venta.productos %}
-                                        <tr>
-                                            <td>{{ producto.descripcion }}</td>
-                                            <td>{{ producto.precio_unitario }}</td>
-                                            <td>{{ producto.cantidad }}</td>
-                                            <td>{{ producto.precio_total }}</td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+<div class="container mt-3 fixed-header-table-container">
+    <h2>Listado de Ventas</h2>
+    <form method="get" action="" class="form-inline mb-3">
+        <div class="form-group mx-sm-3 mb-2">
+            <label for="fecha_inicio" class="sr-only">Fecha Inicio:</label>
+            <input type="date" name="fecha_inicio" id="fecha_inicio" value="{{ request.GET.fecha_inicio }}" class="form-control">
+        </div>
+        <div class="form-group mx-sm-3 mb-2">
+            <label for="fecha_fin" class="sr-only">Fecha Fin:</label>
+            <input type="date" name="fecha_fin" id="fecha_fin" value="{{ request.GET.fecha_fin }}" class="form-control">
+        </div>
+        <div class="form-group mx-sm-3 mb-2">
+            <label for="total_min" class="sr-only">Total Mínimo:</label>
+            <input type="number" name="total_min" id="total_min" value="{{ request.GET.total_min }}" class="form-control" placeholder="Total Mínimo">
+        </div>
+        <div class="form-group mx-sm-3 mb-2">
+            <label for="total_max" class="sr-only">Total Máximo:</label>
+            <input type="number" name="total_max" id="total_max" value="{{ request.GET.total_max }}" class="form-control" placeholder="Total Máximo">
+        </div>
+        <button type="submit" class="btn btn-primary mb-2">Filtrar</button>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered table-sm fixed-header-table">
+            <thead>
+                <tr>
+                    <th>ID Venta</th>
+                    <th>Fecha</th>
+                    <th>Total</th>
+                    <th>Productos</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for venta in ventas %}
+                <tr>
+                    <td>{{ venta.venta_id }}</td>
+                    <td>{{ venta.fecha }}</td>
+                    <td>{{ venta.total }}</td>
+                    <td>
+                        <!-- Botón que activa el modal -->
+                        <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#productosModal{{ venta.venta_id }}">
+                            Ver Productos
+                        </button>
+                
+                        <!-- Modal -->
+                        <div class="modal fade" id="productosModal{{ venta.venta_id }}" tabindex="-1" role="dialog" aria-labelledby="modalTitle" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="modalTitle">Productos de la Venta {{ venta.venta_id }}</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Descripción</th>
+                                                    <th>Precio Unitario</th>
+                                                    <th>Cantidad</th>
+                                                    <th>Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for producto in venta.productos %}
+                                                <tr>
+                                                    <td>{{ producto.descripcion }}</td>
+                                                    <td>{{ producto.precio_unitario }}</td>
+                                                    <td>{{ producto.cantidad }}</td>
+                                                    <td>{{ producto.precio_total }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </td>
-            <td> <!-- Acciones --> </td>
-        </tr>
-        {% endfor %}
-        
-    </tbody>
-</table>
+                    </td>
+                    <td>
+                        <form method="post" action="{% url 'inventario:eliminar_venta' %}" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="venta_id" value="{{ venta.venta_id }}">
+                            <button type="submit" name="action" value="delete" class="btn btn-danger btn-sm">Eliminar</button>
+                        </form>
+                        <a href="{% url 'inventario:imprimir_ticket' venta.venta_id %}" class="btn btn-secondary btn-sm">Imprimir Ticket</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

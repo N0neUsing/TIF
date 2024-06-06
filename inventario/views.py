@@ -2790,6 +2790,21 @@ class EliminarImpuesto(View):
 class VentasView(View):
     def get(self, request):
         ventas = Purchase.objects.prefetch_related('purchase_items').all().order_by('-created_at')
+        
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
+        total_min = request.GET.get('total_min')
+        total_max = request.GET.get('total_max')
+
+        if fecha_inicio:
+            ventas = ventas.filter(created_at__date__gte=fecha_inicio)
+        if fecha_fin:
+            ventas = ventas.filter(created_at__date__lte=fecha_fin)
+        if total_min:
+            ventas = ventas.filter(total__gte=total_min)
+        if total_max:
+            ventas = ventas.filter(total__lte=total_max)
+        
         detalles_ventas = [
             {
                 'venta_id': venta.id,
@@ -2810,22 +2825,72 @@ class VentasView(View):
         
         return render(request, 'inventario/ventas/listar_ventas.html', {'ventas': detalles_ventas})
 
-
-    
+class EliminarVentaView(View):
     def post(self, request):
-        action = request.POST.get('action')
-        if action == 'delete':
-            venta_id = request.POST.get('venta_id')
-            venta = get_object_or_404(Purchase, id=venta_id)
-            venta.delete()
-            messages.success(request, 'Venta eliminada correctamente.')
-            return redirect('ventas')
+        venta_id = request.POST.get('venta_id')
+        venta = get_object_or_404(Purchase, id=venta_id)
+        venta.delete()
+        messages.success(request, 'Venta eliminada correctamente.')
+        return redirect('inventario:listar_ventas')
+
+class ImprimirTicketView(View):
+    def get(self, request, venta_id):
+        venta = get_object_or_404(Purchase, id=venta_id)
+        venta_items = PurchaseItem.objects.filter(purchase=venta)
+
+        pdf_buffer = BytesIO()
+        page_width = 164  # Ancho en puntos para 58 mm
+        page_height = 800  # Altura suficiente para el contenido del recibo
+        p = canvas.Canvas(pdf_buffer, pagesize=(page_width, page_height))
+        p.setFont("Helvetica", 8)
+
+        y = page_height - 20  # Comenzar desde un margen pequeño
+        y = self.draw_wrapped_text(p, "4 Ases - Comprobante de Compra", 10, y, page_width - 20)
+
+        total_sin_impuestos = 0
+        for item in venta_items:
+            subtotal = item.quantity * item.price
+            total_sin_impuestos += subtotal
+
+            # Asumimos que el campo 'tipo' del producto tiene un atributo 'nombre' que indica la unidad de venta
+            quantity_display = f"{item.quantity} {item.product.tipo.nombre}"
+            item_description = f"{item.product.descripcion}: {quantity_display} x ${item.price:.2f} = ${subtotal:.2f}"
+            y = self.draw_wrapped_text(p, item_description, 10, y - 10, page_width - 20)
+
+        y = self.draw_wrapped_text(p, "----------------------------------", 10, y - 10, page_width - 20)
+        y = self.draw_wrapped_text(p, f"Total: ${venta.total:.2f}", 10, y - 10, page_width - 20)
+        y = self.draw_wrapped_text(p, f"Fecha de Emisión: {venta.created_at.strftime('%Y-%m-%d %H:%M:%S')}", 10, y - 10, page_width - 20)
+        self.draw_wrapped_text(p, "Gracias por Comprar en 4 Ases", 10, y - 30, page_width - 20)
+        y = self.draw_wrapped_text(p, "                                  ", 10, y - 10, page_width - 20)
+        y = self.draw_wrapped_text(p, "                                  ", 10, y - 10, page_width - 20)
+
+        p.showPage()
+        p.save()
+        pdf_buffer.seek(0)
+
+        response = HttpResponse(pdf_buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="ticket_{venta_id}.pdf"'
+        return response
+
+    def draw_wrapped_text(self, p, text, x, y, max_width):
+        words = text.split()
+        current_line = ""
+        space_width = p.stringWidth(' ', "Helvetica", 8)
+        for word in words:
+            word_width = p.stringWidth(word, "Helvetica", 8)
+            if p.stringWidth(current_line + word, "Helvetica", 8) + space_width > max_width:
+                p.drawString(x, y, current_line)
+                y -= 10
+                current_line = word + ' '
+            else:
+                current_line += word + ' '
+        if current_line:
+            p.drawString(x, y, current_line)
+        return y
 
 
+# Fin de vista--------------------------------------------------------------------------------
 
-
-
-#Fin de vista--------------------------------------------------------------------------------
 ##
 ## C L I E N T E S 
 ##

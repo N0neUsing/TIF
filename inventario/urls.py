@@ -91,6 +91,8 @@ path('api/total-con-impuestos/', views.TotalConImpuestosView.as_view(), name='to
 
 
 path('ventas/listar_ventas/', views.VentasView.as_view(), name='listar_ventas'),
+path('ventas/eliminar/', views.EliminarVentaView.as_view(), name='eliminar_venta'),
+path('ventas/imprimir_ticket/<int:venta_id>/', views.ImprimirTicketView.as_view(), name='imprimir_ticket'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

@@ -17,37 +17,32 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 <script src="https://cdn.datatables.net/plug-ins/1.10.21/sorting/datetime-moment.js"></script>
 
-
-
-
-
 <script>
   $(document).ready(function() {
     // Registrar el formato de fecha DD/MM/YYYY con DataTables para ordenar
     $.fn.dataTable.moment('DD/MM/YYYY');
 
-      // Inicializa DataTables en la primera tabla
-      $('#example1').DataTable({
-          'paging': true,
-          'lengthChange': true,
-          'searching': true,
-          'ordering': true,
-          'info': true,
-          'autoWidth': true,
-          "scrollCollapse": false
-      });
+    // Inicializa DataTables en la primera tabla
+    $('#example1').DataTable({
+        'paging': true,
+        'lengthChange': true,
+        'searching': true,
+        'ordering': true,
+        'info': true,
+        'autoWidth': true,
+        "scrollCollapse": false
+    });
 
-      // Inicializa DataTables en la segunda tabla
-      $('#example2').DataTable({
-          'paging': false,
-          'lengthChange': true,
-          'searching': true,
-          'ordering': true,
-          'info': true,
-          'autoWidth': true,
-          "scrollCollapse": false
-      });
-
+    // Inicializa DataTables en la segunda tabla
+    $('#example2').DataTable({
+        'paging': false,
+        'lengthChange': true,
+        'searching': true,
+        'ordering': true,
+        'info': true,
+        'autoWidth': true,
+        "scrollCollapse": false
+    });
   });
 
   // Función para remover acentos
@@ -57,8 +52,8 @@
       .replace(/[\u0300-\u036f]/g, '');
   }
     
-    // Plugin de búsqueda para DataTables
-    $.fn.dataTable.ext.type.search.string = function(data) {
+  // Plugin de búsqueda para DataTables
+  $.fn.dataTable.ext.type.search.string = function(data) {
     return !data ?
       '' :
       typeof data === 'string' ?
@@ -78,5 +73,39 @@
         table.style.position = 'static';
     }
   };
-  
+
+  // Script para la transparencia y expansión del header
+  document.addEventListener("DOMContentLoaded", function() {
+      const header = document.getElementById('main-header');
+      let timeout;
+
+      // Función para hacer el header transparente después de 5 segundos
+      function makeHeaderTransparent() {
+          header.classList.add('transparent');
+      }
+
+      // Función para hacer el header sólido y expandido cuando el mouse está cerca
+      function expandHeader() {
+          clearTimeout(timeout);
+          header.classList.remove('transparent');
+          header.classList.add('expanded');
+      }
+
+      // Función para iniciar el temporizador de transparencia
+      function startTransparencyTimer() {
+          timeout = setTimeout(makeHeaderTransparent, 1000);
+      }
+
+      // Detectar el movimiento del mouse sobre el header
+      header.addEventListener('mouseenter', expandHeader);
+
+      // Detectar el movimiento del mouse fuera del header
+      header.addEventListener('mouseleave', function() {
+          header.classList.remove('expanded');
+          startTransparencyTimer();
+      });
+
+      // Iniciar el temporizador de transparencia cuando la página se carga
+      startTransparencyTimer();
+  });
 </script>
