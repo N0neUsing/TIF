@@ -1,155 +1,827 @@
 {% extends "inventario/comun/base.html" %}
 
 {% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<style>
+    .table-responsive {
+        max-height: 200px; /* Ajusta este valor según sea necesario */
+        overflow-y: auto;
+        margin-bottom: 20px;
+    }
+
+    .table-sm tbody {
+        display: block;
+        max-height: 200px; /* Ajusta este valor según sea necesario */
+        overflow-y: scroll;
+    }
+
+    .table-sm thead, .table-sm tbody tr {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    .stat {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .stat h3 {
+        font-size: 2em;
+        margin: 0;
+        color: #28a745;
+    }
+
+    .stat p {
+        margin: 5px 0;
+        font-size: 1.1em;
+        color: #6c757d;
+    }
+
+    .stat i {
+        font-size: 1.5em;
+        color: #6c757d;
+        margin-right: 10px;
+    }
+
+    .btn {
+        display: block;
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .modal .modal-content {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .modal .modal-header {
+        background-color: #28a745;
+        color: #fff;
+    }
+
+    .modal .modal-title {
+        margin: 0;
+    }
+
+    .table th, .table td {
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .table th {
+        background-color: #f8f9fa;
+    }
+
+    .table tbody tr:nth-child(odd) {
+        background-color: #f8f9fa;
+    }
+
+    .table tbody tr:hover {
+        background-color: #e9ecef;
+    }
+
+    canvas {
+        display: block; /* Asegúrate de que los canvas se muestren */
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
-let numeroAdministradores = '{{ administradores }}'
-let numeroUsuarios = '{{ usuarios }}'
+    document.addEventListener('DOMContentLoaded', function() {
+        const horas = JSON.parse('{{ horas|escapejs }}');
+        const totalesHoras = JSON.parse('{{ totales_horas|escapejs }}');
+        const diasSemana = JSON.parse('{{ dias_semana|escapejs }}');
+        const totalesDiasSemana = JSON.parse('{{ totales_dias_semana|escapejs }}');
+        const diasMes = JSON.parse('{{ dias_mes|escapejs }}');
+        const totalesDiasMes = JSON.parse('{{ totales_dias_mes|escapejs }}');
+        const meses = JSON.parse('{{ meses|escapejs }}');
+        const totalesMeses = JSON.parse('{{ totales_meses|escapejs }}');
 
+        const ventasDiariasCtx = document.getElementById('ventasDiariasChart').getContext('2d');
+        const ventasDiariasChart = new Chart(ventasDiariasCtx, {
+            type: 'line',
+            data: {
+                labels: horas,
+                datasets: [{
+                    label: 'Ventas Diarias',
+                    data: totalesHoras,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        const ventasSemanalesCtx = document.getElementById('ventasSemanalesChart').getContext('2d');
+        const ventasSemanalesChart = new Chart(ventasSemanalesCtx, {
+            type: 'bar',
+            data: {
+                labels: diasSemana,
+                datasets: [{
+                    label: 'Ventas Semanales',
+                    data: totalesDiasSemana,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        const ventasMensualesCtx = document.getElementById('ventasMensualesChart').getContext('2d');
+        const ventasMensualesChart = new Chart(ventasMensualesCtx, {
+            type: 'bar',
+            data: {
+                labels: diasMes,
+                datasets: [{
+                    label: 'Ventas Mensuales',
+                    data: totalesDiasMes,
+                    backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        const ventasAnualesCtx = document.getElementById('ventasAnualesChart').getContext('2d');
+        const ventasAnualesChart = new Chart(ventasAnualesCtx, {
+            type: 'bar',
+            data: {
+                labels: meses,
+                datasets: [{
+                    label: 'Ventas Anuales',
+                    data: totalesMeses,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    });
+
+    function mostrarProductosCliente(clienteId) {
+        fetch(`/api/clientes/${clienteId}/productos`)
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.querySelector('#productosClienteTable tbody');
+                tbody.innerHTML = '';
+                data.productos.forEach(producto => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${producto.descripcion}</td>
+                        <td>${producto.cantidad}</td>
+                        <td>${producto.precio_unitario}</td>
+                        <td>${producto.subtotal}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                document.getElementById('totalConRecargo').innerText = `$${data.total_con_recargo.toFixed(2)}`;
+                const pagarBtn = document.getElementById('pagarBtn');
+                if (pagarBtn) {
+                    pagarBtn.setAttribute('data-cliente-id', clienteId);
+                }
+                $('#productosClienteModal').modal('show');
+            });
+    }
 </script>
-                <article class="content dashboard-page">
-                    <section class="section">
-                        <div class="row sameheight-container">
-                            <!-- MENSAJES DE ERROR O EXITO -->
-{% if messages %}
-    {% for message in messages %}
-        {% if message.level == 40 %}
 
-         <div class="col-xl-12">
-         <div class="card card-warning">
-            <div class="card-header"> 
-                <div class="header-block">
-                    <em class="fa fa-warning"></em>
-                    <p class="title">{{ message }}</p>
-                    </div>
-                </div>
-         </div>
-     </div>
-
-        {% else %}      
-
-         <div class="col-xl-12">
-         <div class="card card-primary">
-            <div class="card-header"> 
-                <div class="header-block">
-                    <em class="fa fa-check"></em>
-                    <p class="title">{{ message }}</p>
-                    </div>
-                </div>
-         </div> 
-         </div>             
-
-         {% endif %}
-    {%endfor%}
-{%endif%}
-<!-- FIN DE MENSAJES DE ERROR O EXITO  -->
-
-
-                            <div class="col col-12 col-sm-12 col-md-12 col-xl-12 stats-col">
-                                <div class="card sameheight-item stats" data-exclude="xs">
-                                    <div class="card-block">
-                                        <div class="title-block">
-                                            <h4 class="title">Estadisticas</h4>
-                                            <p class="title-description">
-                                                {{ fecha }}
-                                            </p>
-                                        </div>
-                                        <div class="row row-sm stats-container">
-                                            <div class="col-12 col-sm-6 stat-col">
-                                                <div class="stat-icon">
-                                                    <i class="fa fa-rocket"></i>
-                                                </div>
-                                                <div class="stat">
-                                                    <div class="value">{{ productosRegistrados }}</div>
-                                                    <div class="name">Productos registrados</div>
-                                                </div>
-                                                <div class="progress stat-progress">
-                                                    <div class="progress-bar" style="width: 100%;"></div>
-                                                </div>
-                                            </div>
-                                            <div class="col-12 col-sm-6 stat-col">
-                                                <div class="stat-icon">
-                                                    <i class="fa fa-shopping-cart"></i>
-                                                </div>
-                                                <div class="stat">
-                                                    <div class="value">{{ productosVendidos }}</div>
-                                                    <div class="name">Productos vendidos</div>
-                                                </div>
-                                                <div class="progress stat-progress">
-                                                    <div class="progress-bar" style="width: 100%;"></div>
-                                                </div>
-                                            </div>
-                                            <div class="col-12 col-sm-6  stat-col">
-                                                <div class="stat-icon">
-                                                    <i class="fa fa-line-chart"></i>
-                                                </div>
-                                                <div class="stat">
-                                                    <div class="value">{{ clientesRegistrados }}</div>
-                                                    <div class="name">Clientes registrados</div>
-                                                </div>
-                                                <div class="progress stat-progress">
-                                                    <div class="progress-bar" style="width: 100%;"></div>
-                                                </div>
-                                            </div>
-                                            <div class="col-12 col-sm-6  stat-col">
-                                                <div class="stat-icon">
-                                                    <i class="fa fa-users"></i>
-                                                </div>
-                                                <div class="stat">
-                                                    <div class="value">{{ usuariosRegistrados }}</div>
-                                                    <div class="name">Numero de usuarios</div>
-                                                </div>
-                                                <div class="progress stat-progress">
-                                                    <div class="progress-bar" style="width: 100%;"></div>
-                                                </div>
-                                            </div>
-                                            <div class="col-12 col-sm-6  stat-col">
-                                                <div class="stat-icon">
-                                                    <i class="fa fa-list-alt"></i>
-                                                </div>
-                                                <div class="stat">
-                                                    <div class="value">{{ facturasEmitidas }}</div>
-                                                    <div class="name">Facturas emitidas</div>
-                                                </div>
-                                                <div class="progress stat-progress">
-                                                    <div class="progress-bar" style="width: 100%;"></div>
-                                                </div>
-                                            </div>
-                                            <div class="col-12 col-sm-6 stat-col">
-                                                <div class="stat-icon">
-                                                    <i class="fa fa-dollar"></i>
-                                                </div>
-                                                <div class="stat">
-                                                    <div class="value"> Bs.{{ ingresoTotal }} </div>
-                                                    <div class="name">Ingreso total</div>
-                                                </div>
-                                                <div class="progress stat-progress">
-                                                    <div class="progress-bar" style="width: 100%;"></div>
-                                                </div>
-                                            </div>
-                                        </div>
+<article class="content dashboard-page">
+    <section class="section">
+        <div class="row sameheight-container">
+            <!-- MENSAJES DE ERROR O EXITO -->
+            {% if messages %}
+                {% for message in messages %}
+                    {% if message.level == 40 %}
+                        <div class="col-xl-12">
+                            <div class="card card-warning">
+                                <div class="card-header">
+                                    <div class="header-block">
+                                        <em class="fa fa-warning"></em>
+                                        <p class="title">{{ message }}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </section>
-            
-                <section class="section">
-                        <div class="row sameheight-container">
-                        <!-- PON LA LISTA AQUI -->
-                            <div class="col-xl-12">
-                                <div class="card sameheight-item sales-breakdown" data-exclude="xs,sm,lg">
-                                    <div class="card-header">
-                                        <div class="header-block">
-                                            <h3 class="title">Division de usuarios</h3>
-                                        </div>
-                                    </div>
-                                    <div class="card-block">
-                                        <div class="dashboard-sales-breakdown-chart" id="dashboard-sales-breakdown-chart"></div>
+                    {% else %}
+                        <div class="col-xl-12">
+                            <div class="card card-primary">
+                                <div class="card-header">
+                                    <div class="header-block">
+                                        <em class="fa fa-check"></em>
+                                        <p class="title">{{ message }}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </section>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            <!-- FIN DE MENSAJES DE ERROR O EXITO  -->
 
-                </article>
-                {% endblock %}
+            <div class="col col-12 col-sm-12 col-md-12 col-xl-12 stats-col">
+                <div class="card sameheight-item stats" data-exclude="xs">
+                    <div class="card-block">
+                        <div class="title-block">
+                            <h4 class="title">Estadísticas de Ventas</h4>
+                            <p class="title-description">{{ fecha }}</p>
+                        </div>
+                        <div class="row row-sm stats-container">
+                            <div class="col-12 col-sm-6 stat-col">
+                                <div class="stat">
+                                    <h3>${{ ventas_diarias_total }}</h3>
+                                    <p><i class="fas fa-calendar-day"></i>Ventas Diarias</p>
+                                    <canvas id="ventasDiariasChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 stat-col">
+                                <div class="stat">
+                                    <h3>${{ ventas_semanales_total }}</h3>
+                                    <p><i class="fas fa-calendar-week"></i>Ventas Semanales</p>
+                                    <canvas id="ventasSemanalesChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 stat-col">
+                                <div class="stat">
+                                    <h3>${{ ventas_mensuales_total }}</h3>
+                                    <p><i class="fas fa-calendar-alt"></i>Ventas Mensuales</p>
+                                    <canvas id="ventasMensualesChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 stat-col">
+                                <div class="stat">
+                                    <h3>${{ ventas_anuales_total }}</h3>
+                                    <p><i class="fas fa-calendar"></i>Ventas Anuales</p>
+                                    <canvas id="ventasAnualesChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col col-12 col-sm-12 col-md-12 col-xl-12 stats-col">
+                <div class="card sameheight-item stats" data-exclude="xs">
+                    <div class="card-block">
+                        <div class="title-block">
+                            <h4 class="title">Estadísticas</h4>
+                            <p class="title-description">{{ fecha }}</p>
+                        </div>
+                        <div class="row row-sm stats-container">
+                            <div class="col-12 col-sm-6 stat-col">
+                                <div class="stat">
+                                    <h3>{{ productosAVencer }}</h3>
+                                    <p><i class="fas fa-exclamation-triangle"></i>Productos a vencer</p>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Descripción</th>
+                                                <th>Fecha de Vencimiento</th>
+                                                <th>Precio</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for producto in lista_productosAVencer %}
+                                            <tr>
+                                                <td>{{ producto.descripcion }}</td>
+                                                <td>{{ producto.fecha_vencimiento }}</td>
+                                                <td>{{ producto.precio }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button class="btn btn-success" data-toggle="modal" data-target="#productosAVencerModal">Mostrar detalles</button>
+                            </div>
+                            
+                            <div class="col-12 col-sm-6 stat-col">
+                                <div class="stat">
+                                    <h3>{{ productosVendidos }}</h3>
+                                    <p><i class="fas fa-shopping-cart"></i>Productos vendidos</p>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Descripción</th>
+                                                <th>Cantidad</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for producto in lista_productosVendidos %}
+                                            <tr>
+                                                <td>{{ producto.product__descripcion }}</td>
+                                                <td>{{ producto.total_vendido }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button class="btn btn-success" data-toggle="modal" data-target="#productosVendidosModal">Mostrar detalles</button>
+                            </div>
+                                                                                                                                            
+                            <div class="col-12 col-sm-6 stat-col">
+                                <div class="stat">
+                                    <h3>{{ productosIncompletos }}</h3>
+                                    <p><i class="fas fa-times-circle"></i>Productos incompletos</p>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Descripción</th>
+                                                <th>Precio</th>
+                                                <th>Tipo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for producto in lista_productosIncompletos %}
+                                            <tr>
+                                                <td>{{ producto.descripcion }}</td>
+                                                <td>{{ producto.precio }}</td>
+                                                <td>{{ producto.tipo }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button class="btn btn-success" data-toggle="modal" data-target="#productosIncompletosModal">Mostrar detalles</button>
+                            </div>
+
+                            <div class="col-12 col-sm-6 stat-col">
+                                <div class="stat">
+                                    <h3>{{ clientesRegistrados }}</h3>
+                                    <p><i class="fas fa-users"></i>Clientes con cuentas pendientes</p>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Nombre</th>
+                                                <th>Apellido</th>
+                                                <th>Teléfono</th>
+                                                <th>Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for cliente in lista_clientes %}
+                                            {% if cliente.totalConRecargo > 0 %}
+                                            <tr>
+                                                <td>{{ cliente.id }}</td>
+                                                <td>{{ cliente.nombre }}</td>
+                                                <td>{{ cliente.apellido }}</td>
+                                                <td>{{ cliente.telefono }}</td>
+                                                <td>{{ cliente.totalConRecargo }}</td>
+                                            </tr>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button class="btn btn-success" data-toggle="modal" data-target="#clientesModal">Mostrar detalles</button>
+                            </div>
+                                                        
+                            <div class="col-12 col-sm-6 stat-col">
+                                <div class="stat">
+                                    <h3>{{ facturasEmitidas }}</h3>
+                                    <p><i class="fas fa-file-invoice"></i>Facturas emitidas</p>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>ID Venta</th>
+                                                <th>Fecha</th>
+                                                <th>Total</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for venta in ventas_recientes %}
+                                            <tr>
+                                                <td>{{ venta.id }}</td>
+                                                <td>{{ venta.fecha }}</td>
+                                                <td>{{ venta.total }}</td>
+                                                <td>
+                                                    <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#productosVentaModal{{ venta.id }}">
+                                                        Ver Productos
+                                                    </button>
+                                                    <a href="{% url 'inventario:imprimir_ticket' venta.id %}" class="btn btn-secondary btn-sm">Imprimir Ticket</a>
+                                                </td>
+                                            </tr>
+                                            <div class="modal fade" id="productosVentaModal{{ venta.id }}" tabindex="-1" role="dialog" aria-labelledby="productosVentaModalLabel{{ venta.id }}" aria-hidden="true">
+                                                <div class="modal-dialog" role="document">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="productosVentaModalLabel{{ venta.id }}">Productos de la Venta {{ venta.id }}</h5>
+                                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                                <span aria-hidden="true">&times;</span>
+                                                            </button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <table class="table table-sm">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Descripción</th>
+                                                                        <th>Precio Unitario</th>
+                                                                        <th>Cantidad</th>
+                                                                        <th>Total</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for producto in venta.productos %}
+                                                                    <tr>
+                                                                        <td>{{ producto.descripcion }}</td>
+                                                                        <td>{{ producto.precio_unitario }}</td>
+                                                                        <td>{{ producto.cantidad }}</td>
+                                                                        <td>{{ producto.precio_total }}</td>
+                                                                    </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button class="btn btn-success" data-toggle="modal" data-target="#facturasModal">Mostrar detalles</button>
+                            </div>
+                                                                                    
+                            <div class="col-12 col-sm-6 stat-col">
+                                <div class="stat">
+                                    <h3>{{ productosBajosEnStock }}</h3>
+                                    <p><i class="fas fa-level-down-alt"></i>Productos bajos en stock</p>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Descripción</th>
+                                                <th>Disponible</th>
+                                                <th>Precio</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for producto in lista_productosBajosEnStock %}
+                                            <tr>
+                                                <td>{{ producto.descripcion }}</td>
+                                                <td>{{ producto.disponible }}</td>
+                                                <td>{{ producto.precio }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button class="btn btn-success" data-toggle="modal" data-target="#productosBajosEnStockModal">Mostrar detalles</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+<!-- Modals -->
+<div class="modal fade" id="productosVendidosModal" tabindex="-1" role="dialog" aria-labelledby="productosVendidosModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productosVendidosModalLabel">Productos Vendidos</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Descripción</th>
+                            <th>Cantidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for producto in lista_completa_productosVendidos %}
+                        <tr>
+                            <td>{{ producto.product__descripcion }}</td>
+                            <td>{{ producto.total_vendido }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="productosAVencerModal" tabindex="-1" role="dialog" aria-labelledby="productosAVencerModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productosAVencerModalLabel">Productos a Vencer</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Descripción</th>
+                            <th>Fecha de Vencimiento</th>
+                            <th>Precio</th>
+                            <th>Imagen</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for producto in lista_completa_productosAVencer %}
+                        <tr>
+                            <td>{{ producto.descripcion }}</td>
+                            <td>{{ producto.fecha_vencimiento }}</td>
+                            <td>{{ producto.precio }}</td>
+                            <td>
+                                {% if producto.imagen_producto %}
+                                <img src="{{ producto.imagen_producto.url }}" alt="{{ producto.descripcion }}" width="50">
+                                {% else %}
+                                No disponible
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'inventario:editar_producto' producto.id %}" class="btn btn-primary btn-sm">Editar</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="productosIncompletosModal" tabindex="-1" role="dialog" aria-labelledby="productosIncompletosModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productosIncompletosModalLabel">Productos Incompletos</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Descripción</th>
+                            <th>Precio</th>
+                            <th>Tipo</th>
+                            <th>Imagen</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for producto in lista_productosIncompletos %}
+                        <tr>
+                            <td>{{ producto.descripcion }}</td>
+                            <td>{{ producto.precio }}</td>
+                            <td>{{ producto.tipo }}</td>
+                            <td>
+                                {% if producto.imagen_producto %}
+                                <img src="{{ producto.imagen_producto.url }}" alt="{{ producto.descripcion }}" width="50">
+                                {% else %}
+                                No disponible
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'inventario:editar_producto' producto.id %}" class="btn btn-primary btn-sm">Editar</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="clientesModal" tabindex="-1" role="dialog" aria-labelledby="clientesModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="clientesModalLabel">Clientes Registrados</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre completo</th>
+                            <th>Teléfono</th>
+                            <th>Total a Pagar</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in lista_completa_clientes %}
+                        <tr>
+                            <td>{{ cliente.id }}</td>
+                            <td>{{ cliente.nombre }}</td>
+                            <td>{{ cliente.apellido }}</td>
+                            <td>{{ cliente.telefono }}</td>
+                            <td>{{ cliente.totalConRecargo }}</td>
+                            <td>
+                                <button type="button" class="btn btn-primary" onclick="mostrarProductosCliente({{ cliente.id }})">Ver Productos</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para productos del cliente -->
+<div class="modal fade" id="productosClienteModal" tabindex="-1" role="dialog" aria-labelledby="productosClienteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productosClienteModalLabel">Productos del Cliente</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table id="productosClienteTable" class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Precio Unitario</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Los productos se cargarán aquí por JS -->
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">Total con recargo:</td>
+                            <td id="totalConRecargo">$0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <button id="pagarBtn" type="button" class="btn btn-success" onclick="pagarCuentaCliente(this.getAttribute('data-cliente-id'))">Pagar Cuenta</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="facturasModal" tabindex="-1" role="dialog" aria-labelledby="facturasModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="facturasModalLabel">Facturas Emitidas</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>ID Venta</th>
+                            <th>Fecha</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for venta in ventas %}
+                        <tr>
+                            <td>{{ venta.id }}</td>
+                            <td>{{ venta.fecha }}</td>
+                            <td>{{ venta.total }}</td>
+                            <td>
+                                <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#productosVentaModal{{ venta.id }}">
+                                    Ver Productos
+                                </button>
+                                <a href="{% url 'inventario:imprimir_ticket' venta.id %}" class="btn btn-secondary btn-sm">Imprimir Ticket</a>
+                            </td>
+                        </tr>
+                        <div class="modal fade" id="productosVentaModal{{ venta.id }}" tabindex="-1" role="dialog" aria-labelledby="productosVentaModalLabel{{ venta.id }}" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="productosVentaModalLabel{{ venta.id }}">Productos de la Venta {{ venta.id }}</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Descripción</th>
+                                                    <th>Precio Unitario</th>
+                                                    <th>Cantidad</th>
+                                                    <th>Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for producto in venta.productos %}
+                                                <tr>
+                                                    <td>{{ producto.descripcion }}</td>
+                                                    <td>{{ producto.precio_unitario }}</td>
+                                                    <td>{{ producto.cantidad }}</td>
+                                                    <td>{{ producto.precio_total }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="productosBajosEnStockModal" tabindex="-1" role="dialog" aria-labelledby="productosBajosEnStockModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productosBajosEnStockModalLabel">Productos Bajos en Stock</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Descripción</th>
+                            <th>Disponible</th>
+                            <th>Precio</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for producto in lista_completa_productosBajosEnStock %}
+                        <tr>
+                            <td>{{ producto.descripcion }}</td>
+                            <td>{{ producto.disponible }}</td>
+                            <td>{{ producto.precio }}</td>
+                            <td>
+                                <a href="{% url 'inventario:editar_producto' producto.id %}" class="btn btn-primary btn-sm">Editar</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

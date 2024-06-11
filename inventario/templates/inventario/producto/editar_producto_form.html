@@ -1,0 +1,25 @@
+{% for field in form %}
+    {% if not field.is_hidden %}
+        <div class="form-group {% if field.errors %}has-error{% endif %}">
+            <label for="{{ field.id_for_label }}" class="control-label">{{ field.label }}</label>
+            {% if field.name == 'codigo_barra' %}
+                <div class="input-group">
+                    {{ field }}
+                    <div class="input-group-append">
+                        <button id="btn-scan-qr" class="btn btn-primary">Escanear QR</button>
+                    </div>
+                </div>
+            {% else %}
+                {{ field }}
+            {% endif %}
+            {% if field.help_text %}
+                <small class="form-text text-muted">{{ field.help_text }}</small>
+            {% endif %}
+            {% for error in field.errors %}
+                <div class="invalid-feedback">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endfor %}

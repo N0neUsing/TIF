@@ -2,10 +2,9 @@
 {% load my_filters %}
 
 {% block content %}
-
 <style>
     .table th, .table td {
-        max-width: 150px; /* Ajusta este valor según necesites */
+        max-width: 150px; 
     }
 
     .table td, .table th {
@@ -15,25 +14,25 @@
     }
 
     .table td, .table th {
-        position: relative; /* Posicionamiento relativo para el td */
-        white-space: normal; /* Permite ajuste de texto */
+        position: relative;
+        white-space: normal;
         vertical-align: middle;
-        overflow: visible; /* Importante para que la imagen pueda expandirse */
+        overflow: visible;
     }
 
     .expand-on-hover {
         transition: transform 0.3s ease;
         transform-origin: center;
-        position: absolute; /* Posición absoluta para que pueda salirse de su contenedor */
-        z-index: 50; /* Z-index alto para estar por encima de otros elementos */
+        position: absolute;
+        z-index: 50;
         left: 50%;
         top: 50%;
-        transform: translate(-50%, -50%) scale(1); /* Centrar y escalar adecuadamente la imagen */
+        transform: translate(-50%, -50%) scale(1);
     }
 
     .table td:hover .expand-on-hover {
         transform: translate(-50%, -50%) scale(3);
-        z-index: 100; /* Asegúrate de que sea superior a cualquier otro elemento en la tabla */
+        z-index: 100;
     }
 
     .btn-group {
@@ -94,9 +93,9 @@
                                                 <div class="btn-group">
                                                     <button class="btn add-to-cart mr-1" data-product-id="{{ producto.id }}">
                                                     <i class="fa fa-shopping-cart"></i></button>
-                                                    <a href="{% url 'inventario:editar_producto' producto.id %}" class="btn btn-primary btn-sm mr-1">
+                                                    <button class="btn btn-primary btn-sm mr-1 edit-product-btn" data-toggle="modal" data-target="#editProductModal" data-product-id="{{ producto.id }}">
                                                         <i class="fa fa-edit"></i>
-                                                    </a>
+                                                    </button>
                                                     <button onclick="eliminarEntrada({{ producto.id }}, 'producto')" class="btn btn-danger btn-sm">
                                                         <i class="fa fa-trash"></i>
                                                     </button>

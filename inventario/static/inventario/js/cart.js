@@ -1,6 +1,6 @@
 console.log("cart.js cargado.");
-const BASE_URL = 'https://sistema-delvalle-noneuser.loca.lt';
-// const BASE_URL = 'http://localhost:8000';
+//const BASE_URL = 'https://sistema-delvalle-noneuser.loca.lt';
+const BASE_URL = 'http://localhost:8000';
 const MEDIA_URL = '/media/';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -691,34 +691,40 @@ $('#clientModal').on('show.bs.modal', function() {
 function mostrarProductosCliente(clienteId) {
     const url = `${BASE_URL}/inventario/api/cliente/${clienteId}/productos/`;
     const pagarBtn = document.getElementById('pagarBtn');
-    pagarBtn.setAttribute('data-cliente-id', clienteId);
+    
+    if (pagarBtn) {
+        pagarBtn.setAttribute('data-cliente-id', clienteId);
 
-    fetch(url)
-    .then(response => response.json())
-    .then(data => {
-        console.log("Datos recibidos:", data);
-        const tbody = document.getElementById('productosClienteTable').getElementsByTagName('tbody')[0];
-        tbody.innerHTML = '';
-        let totalSinImpuestos = 0;
+        fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            console.log("Datos recibidos:", data);
+            const tbody = document.getElementById('productosClienteTable').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';
+            let totalSinImpuestos = 0;
 
-        data.forEach(producto => {
-            let precio = parseFloat(producto.precio);
-            let subtotal = producto.cantidad * precio;
-            totalSinImpuestos += subtotal;
-            let row = tbody.insertRow();
-            row.insertCell(0).textContent = producto.descripcion;
-            row.insertCell(1).textContent = producto.cantidad;
-            row.insertCell(2).textContent = `$${precio.toFixed(2)}`;
-            row.insertCell(3).textContent = `$${subtotal.toFixed(2)}`;
+            data.forEach(producto => {
+                let precio = parseFloat(producto.precio);
+                let subtotal = producto.cantidad * precio;
+                totalSinImpuestos += subtotal;
+                let row = tbody.insertRow();
+                row.insertCell(0).textContent = producto.descripcion;
+                row.insertCell(1).textContent = producto.cantidad;
+                row.insertCell(2).textContent = `$${precio.toFixed(2)}`;
+                row.insertCell(3).textContent = `$${subtotal.toFixed(2)}`;
+            });
+
+            document.getElementById('totalConRecargo').textContent = `$${(totalSinImpuestos * 1.10).toFixed(2)}`;
+            $('#productosClienteModal').modal('show');
+        })
+        .catch(error => {
+            console.error('Error al cargar los productos del cliente:', error);
         });
-
-        document.getElementById('totalConRecargo').textContent = `$${(totalSinImpuestos * 1.10).toFixed(2)}`;
-        $('#productosClienteModal').modal('show');
-    })
-    .catch(error => {
-        console.error('Error al cargar los productos del cliente:', error);
-    });
+    } else {
+        console.error("pagarBtn no encontrado");
+    }
 }
+
 
 function pagarCuentaCliente(clienteId) {
     const url = `${BASE_URL}/inventario/pagar-cuenta-cliente/${clienteId}/`;

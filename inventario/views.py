@@ -1,4 +1,5 @@
 #renderiza las vistas al usuario
+import random
 from django.shortcuts import render, redirect, get_object_or_404
 # para redirigir a otras paginas
 from django.http import Http404, HttpResponseRedirect, HttpResponse,FileResponse
@@ -16,7 +17,7 @@ from .models import Categoria, Cart, CartItem, Purchase, Impuesto, Cliente, Clie
 from .forms import CategoriaForm
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from .models import PrecioScraping
-from django.db.models import Min, Max
+from django.db.models import Min, Max, Sum, Count
 import re
 import requests
 from bs4 import BeautifulSoup
@@ -30,7 +31,7 @@ import json
 from django.core.serializers.json import DjangoJSONEncoder
 from rest_framework import generics, serializers
 from .serializers import CartSerializer, CartItemSerializer
-from datetime import timedelta
+from datetime import date, timedelta
 from django.utils import timezone
 from urllib.parse import urlparse
 import logging
@@ -55,8 +56,13 @@ from .serializers import ProductoSerializer
 from django.conf import settings
 from django.db.models import Q
 from unidecode import unidecode
-
-
+import base64
+from statsmodels.tsa.arima.model import ARIMA
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+import pandas as pd
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 
 
@@ -198,38 +204,110 @@ class Login(View):
 
 
 
-#Panel de inicio y vista principal------------------------------------------------#
 class Panel(LoginRequiredMixin, View):
-    #De no estar logeado, el usuario sera redirigido a la pagina de Login
-    #Las dos variables son la pagina a redirigir y el campo adicional, respectivamente
     login_url = '/inventario/login'
     redirect_field_name = None
 
     def get(self, request):
-        from datetime import date
-        #Recupera los datos del usuario despues del login
-        contexto = {'usuario': request.user.username,
-                    'id_usuario':request.user.id,
-                   'nombre': request.user.first_name,
-                   'apellido': request.user.last_name,
-                   'correo': request.user.email,
-                   'fecha':  date.today(),
-                   'productosRegistrados' : Producto.numeroRegistrados(),
-                   'productosVendidos' :  DetalleFactura.productosVendidos(),
-                   'clientesRegistrados' : Cliente.numeroRegistrados(),
-                   'usuariosRegistrados' : Usuario.numeroRegistrados(),
-                   'facturasEmitidas' : Factura.numeroRegistrados(),
-                   'ingresoTotal' : Factura.ingresoTotal(),
-                   'ultimasVentas': DetalleFactura.ultimasVentas(),
-                   'administradores': Usuario.numeroUsuarios('administrador'),
-                   'usuarios': Usuario.numeroUsuarios('usuario')
+        hoy = timezone.now().date()
+        productos_a_vencer = Producto.objects.filter(fecha_vencimiento__lte=hoy + timedelta(days=30)).order_by('-precio')
+        productos_incompletos = Producto.objects.filter(models.Q(precio__isnull=True) | models.Q(imagen_producto__isnull=True) | models.Q(tipo__isnull=True))
+        productos_bajos_en_stock = Producto.objects.filter(disponible__lt=10).order_by('disponible')
 
+        productos_vendidos = PurchaseItem.objects.filter(purchase__created_at__date=hoy) \
+                                                 .values('product__descripcion') \
+                                                 .annotate(total_vendido=Sum('quantity'))
+
+        ventas_hoy = Factura.objects.filter(fecha=hoy).order_by('-fecha')
+        ventas_recientes = ventas_hoy[:5]  # Solo las 5 más recientes
+
+        clientes = Cliente.objects.all()
+        clientes_data = []
+        for cliente in clientes:
+            productos_cliente = ClienteProducto.objects.filter(cliente=cliente)
+            total_sin_impuestos = sum(item.producto.precio * item.cantidad for item in productos_cliente)
+            recargo = Decimal('1.10')  # 10% de recargo
+            total_con_recargo = total_sin_impuestos * recargo
+            if total_con_recargo > 0:
+                clientes_data.append({
+                    'id': cliente.id,
+                    'cedula': cliente.cedula,
+                    'nombre': cliente.nombre,
+                    'apellido': cliente.apellido,
+                    'telefono': cliente.telefono,
+                    'totalConRecargo': total_con_recargo,
+                })
+
+        # Ventas por horas del día actual
+        horas = [f"{str(h).zfill(2)}:00" for h in range(24)]
+        totales_horas = [float(Purchase.objects.filter(created_at__date=hoy, created_at__hour=h).aggregate(total=Sum('total'))['total'] or 0) for h in range(24)]
+
+        # Ventas por días de la semana actual
+        dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+        start_of_week = hoy - timedelta(days=hoy.weekday())
+        totales_dias_semana = [
+            float(Purchase.objects.filter(created_at__date=start_of_week + timedelta(days=i)).aggregate(total=Sum('total'))['total'] or 0) for i in range(7)
+        ]
+
+        # Ventas por días del mes actual
+        dias_mes = [str(d).zfill(2) for d in range(1, hoy.day + 1)]
+        totales_dias_mes = [
+            float(Purchase.objects.filter(created_at__date=hoy.replace(day=d)).aggregate(total=Sum('total'))['total'] or 0) for d in range(1, hoy.day + 1)
+        ]
+
+        # Ventas por meses del año actual
+        meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+        totales_meses = [
+            float(Purchase.objects.filter(created_at__year=hoy.year, created_at__month=m).aggregate(total=Sum('total'))['total'] or 0) for m in range(1, 13)
+        ]
+
+        contexto = {
+            'usuario': request.user.username,
+            'id_usuario': request.user.id,
+            'nombre': request.user.first_name,
+            'apellido': request.user.last_name,
+            'correo': request.user.email,
+            'fecha': hoy,
+            'productosRegistrados': Producto.numeroRegistrados(),
+            'productosVendidos': productos_vendidos.count(),
+            'clientesRegistrados': len(clientes_data),
+            'usuariosRegistrados': Usuario.numeroRegistrados(),
+            'facturasEmitidas': Factura.numeroRegistrados(),
+            'ingresoTotal': Factura.ingresoTotal(),
+            'ultimasVentas': DetalleFactura.ultimasVentas(),
+            'administradores': Usuario.numeroUsuarios('administrador'),
+            'usuarios': Usuario.numeroUsuarios('usuario'),
+            'ventasDiarias': Purchase.ventas_diarias(),
+            'ventasMensuales': Purchase.ventas_mensuales(),
+            'productosAVencer': productos_a_vencer.count(),
+            'productosIncompletos': productos_incompletos.count(),
+            'productosBajosEnStock': productos_bajos_en_stock.count(),
+            'lista_productosAVencer': productos_a_vencer[:5],
+            'lista_completa_productosAVencer': productos_a_vencer,
+            'lista_productosIncompletos': productos_incompletos,
+            'lista_productosBajosEnStock': productos_bajos_en_stock[:5],
+            'lista_completa_productosBajosEnStock': productos_bajos_en_stock,
+            'lista_productosVendidos': productos_vendidos,
+            'lista_completa_productosVendidos': productos_vendidos,
+            'lista_clientes': clientes_data[:5],
+            'lista_completa_clientes': clientes_data,
+            'ventas': ventas_hoy,
+            'ventas_recientes': ventas_recientes,
+            'ventas_diarias_total': Purchase.ventas_diarias(),
+            'ventas_semanales_total': Purchase.ventas_semanales(),
+            'ventas_mensuales_total': Purchase.ventas_mensuales(),
+            'ventas_anuales_total': Purchase.ventas_anuales(),
+            'horas': json.dumps(horas),
+            'totales_horas': json.dumps(totales_horas),
+            'dias_semana': json.dumps(dias_semana),
+            'totales_dias_semana': json.dumps(totales_dias_semana),
+            'dias_mes': json.dumps(dias_mes),
+            'totales_dias_mes': json.dumps(totales_dias_mes),
+            'meses': json.dumps(meses),
+            'totales_meses': json.dumps(totales_meses),
         }
 
-
-        return render(request, 'inventario/panel.html',contexto)
-#Fin de vista----------------------------------------------------------------------#
-
+        return render(request, 'inventario/panel.html', contexto)
 
 
 
@@ -599,9 +677,18 @@ class EditarProducto(LoginRequiredMixin, View):
     login_url = '/inventario/login'
     redirect_field_name = None
 
-    def get(self, request, id): 
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def is_ajax(self, request):
+        return request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+
+    def get(self, request, id):
         producto = get_object_or_404(Producto, pk=id)
-        form = ProductoFormulario(instance=producto)  # Aquí se carga el producto a editar
+        form = ProductoFormulario(instance=producto)
+        if self.is_ajax(request):
+            return render(request, 'inventario/producto/editar_producto_form.html', {'form': form})
         return render(request, 'inventario/producto/agregarProducto.html', {'form': form, 'editar': True})
 
     def post(self, request, id):
@@ -611,20 +698,24 @@ class EditarProducto(LoginRequiredMixin, View):
             producto = form.save(commit=False)
             if 'imagen_producto' in request.FILES:
                 imagen_producto = request.FILES['imagen_producto']
-                imagen_stream = compress_image(imagen_producto, f"comprimido_{imagen_producto.name}")  # Comprime la imagen
+                imagen_stream = compress_image(imagen_producto, f"comprimido_{imagen_producto.name}")
                 imagen_final = InMemoryUploadedFile(
-                    imagen_stream,  # Flujo de bytes
-                    field_name='imagen_producto',  # El nombre del campo en el modelo
-                    name=f"comprimido_{imagen_producto.name}",  # El nuevo nombre del archivo
-                    content_type=imagen_producto.content_type,  # El tipo de contenido
-                    size=imagen_stream.size,  # El tamaño del archivo (usa el atributo size)
-                    charset=None  # El conjunto de caracteres (no es necesario especificarlo para imágenes)
+                    imagen_stream,
+                    field_name='imagen_producto',
+                    name=f"comprimido_{imagen_producto.name}",
+                    content_type=imagen_producto.content_type,
+                    size=imagen_stream.size,
+                    charset=None
                 )
                 producto.imagen_producto = imagen_final
             producto.save()
+            if self.is_ajax(request):
+                return JsonResponse({'success': True, 'message': 'Producto actualizado exitosamente.'})
             messages.success(request, 'Producto actualizado exitosamente.')
             return redirect('inventario:listarProductos')
         else:
+            if self.is_ajax(request):
+                return JsonResponse({'success': False, 'errors': form.errors})
             return render(request, 'inventario/producto/agregarProducto.html', {'form': form, 'editar': True})
 
 
@@ -2449,17 +2540,18 @@ class UpdateCartItemView(LoginRequiredMixin, View):
 
 
 
-class RemoveFromCartView(View):
-    def get(self, request, *args, **kwargs):
-        product_id = self.kwargs.get('product_id')
+class RemoveFromCartView(LoginRequiredMixin, View):
+    def get(self, request, product_id):
         try:
-            cart_item = CartItem.objects.get(product_id=product_id, cart__user=request.user)
+            cart = get_object_or_404(Cart, user=request.user)
+            cart_item = get_object_or_404(CartItem, cart=cart, product_id=product_id)
             cart_item.delete()
             return JsonResponse({'success': True, 'message': 'Producto eliminado del carrito.'})
         except CartItem.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Producto no encontrado en el carrito.'}, status=404)
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
 
 
 
@@ -2887,6 +2979,90 @@ class ImprimirTicketView(View):
         if current_line:
             p.drawString(x, y, current_line)
         return y
+
+def ventas_avanzadas(request):
+    # Obtener todas las compras y detalles de los productos vendidos
+    compras = Purchase.objects.all().values('created_at', 'total')
+    items = PurchaseItem.objects.all().values('purchase__created_at', 'product__descripcion', 'quantity', 'price')
+
+    # Convertir a DataFrame de pandas
+    df_compras = pd.DataFrame(list(compras))
+    df_items = pd.DataFrame(list(items))
+
+    df_compras['created_at'] = pd.to_datetime(df_compras['created_at'])
+    df_items['purchase__created_at'] = pd.to_datetime(df_items['purchase__created_at'])
+
+    # Agrupar por día y sumar las ventas
+    ventas_por_dia = df_compras.groupby(df_compras['created_at'].dt.date)['total'].sum()
+
+    # Agrupar por día y producto
+    ventas_por_producto_dia = df_items.groupby([df_items['purchase__created_at'].dt.date, 'product__descripcion'])['quantity'].sum().unstack(fill_value=0)
+
+    # Asegurarse de que los datos no contengan NaN y sean del tipo correcto
+    ventas_por_dia = ventas_por_dia.astype(float).dropna()
+
+    # Gráfico de ventas diarias
+    fig, ax = plt.subplots()
+    ax.plot(ventas_por_dia.index, ventas_por_dia.values, marker='o')
+    ax.set_xlabel('Fecha')
+    ax.set_ylabel('Ventas')
+    ax.set_title('Ventas Diarias')
+    plt.xticks(rotation=45)
+    
+    # Guardar el gráfico en un buffer
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    image_png = buffer.getvalue()
+    buffer.close()
+    
+    # Convertir a base64
+    graphic = base64.b64encode(image_png)
+    graphic = graphic.decode('utf-8')
+
+    # Predicciones
+    model = ARIMA(ventas_por_dia.values, order=(5,1,0))
+    model_fit = model.fit()
+    pred = model_fit.forecast(steps=30)
+    
+    contexto = {
+        'ventas_por_dia': ventas_por_dia,
+        'dia_con_mas_ventas': ventas_por_dia.idxmax(),
+        'media_ventas_diarias': ventas_por_dia.mean(),
+        'desviacion_ventas_diarias': ventas_por_dia.std(),
+        'predicciones': pred,
+        'graphic': graphic,
+        'ventas_por_producto_dia': ventas_por_producto_dia
+    }
+
+    return render(request, 'inventario/ventas/ventas_avanzadas.html', contexto)
+
+class FiltrarIngresosView(View):
+    def get(self, request):
+        # Lógica para filtrar ingresos
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
+        total_min = request.GET.get('total_min')
+        total_max = request.GET.get('total_max')
+        
+        facturas = Factura.objects.all()
+        
+        if fecha_inicio:
+            facturas = facturas.filter(fecha__gte=fecha_inicio)
+        if fecha_fin:
+            facturas = facturas.filter(fecha__lte=fecha_fin)
+        if total_min:
+            facturas = facturas.filter(monto_general__gte=total_min)
+        if total_max:
+            facturas = facturas.filter(monto_general__lte=total_max)
+        
+        contexto = {
+            'facturas': facturas
+        }
+        
+        return render(request, 'inventario/filtrar_ingresos.html', contexto)
+
+
 
 
 # Fin de vista--------------------------------------------------------------------------------

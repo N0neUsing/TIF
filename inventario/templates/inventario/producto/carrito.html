@@ -4,6 +4,50 @@
 {% load static %}
 
 {% block content %}
+
+<style>
+    .table th, .table td {
+        max-width: 150px; /* Ajusta este valor según necesites */
+    }
+
+    .table td, .table th {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .table td, .table th {
+        position: relative; /* Posicionamiento relativo para el td */
+        white-space: normal; /* Permite ajuste de texto */
+        vertical-align: middle;
+        overflow: visible; /* Importante para que la imagen pueda expandirse */
+    }
+
+    .expand-on-hover {
+        transition: transform 0.3s ease;
+        transform-origin: center;
+        position: absolute; /* Posición absoluta para que pueda salirse de su contenedor */
+        z-index: 50; /* Z-index alto para estar por encima de otros elementos */
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%) scale(1); /* Centrar y escalar adecuadamente la imagen */
+    }
+
+    .table td:hover .expand-on-hover {
+        transform: translate(-50%, -50%) scale(3);
+        z-index: 100; /* Asegúrate de que sea superior a cualquier otro elemento en la tabla */
+    }
+
+    .btn-group {
+        white-space: nowrap;
+    }
+
+    .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+</style>
+
 <article class="content">
     <div class="title-block">
         <h1 class="title">Carrito de Compras</h1>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ventas Avanzadas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .statistics, .predictions, .product-sales {
+            background: #fff;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+        .statistics p, .predictions p, .product-sales p {
+            font-size: 18px;
+            color: #555;
+        }
+        .predictions table, .product-sales table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .predictions th, .predictions td, .product-sales th, .product-sales td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        .predictions th, .product-sales th {
+            background-color: #f2f2f2;
+        }
+        .predictions tr:nth-child(even), .product-sales tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ventas Avanzadas</h1>
+    
+    <div class="statistics">
+        <h2>Estadísticas</h2>
+        <p><strong>Día con más ventas:</strong> {{ dia_con_mas_ventas }}</p>
+        <p><strong>Media de ventas diarias:</strong> {{ media_ventas_diarias|floatformat:2 }} unidades</p>
+        <p><strong>Desviación estándar de las ventas diarias:</strong> {{ desviacion_ventas_diarias|floatformat:2 }} unidades</p>
+    </div>
+    
+    <div class="graph">
+        <h2>Gráfico de Ventas Diarias</h2>
+        <img src="data:image/png;base64,{{ graphic }}" alt="Gráfico de Ventas Diarias"/>
+    </div>
+    
+    <div class="predictions">
+        <h2>Predicciones de Ventas para los Próximos 30 Días</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Día</th>
+                    <th>Predicción de Ventas (unidades)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prediccion in predicciones %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ prediccion|floatformat:2 }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="product-sales">
+        <h2>Ventas por Producto y Día</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    {% for producto in ventas_por_producto_dia.0.keys %}
+                        <th>{{ producto }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for fecha, ventas in ventas_por_producto_dia.items %}
+                    <tr>
+                        <td>{{ fecha }}</td>
+                        {% for producto, cantidad in ventas.items %}
+                            <td>{{ cantidad }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

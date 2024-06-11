@@ -108,4 +108,46 @@
       // Iniciar el temporizador de transparencia cuando la página se carga
       startTransparencyTimer();
   });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    $('.edit-product-btn').on('click', function () {
+        var productId = $(this).data('product-id');
+        $.ajax({
+            url: '{% url "inventario:editar_producto" 0 %}'.replace('0', productId),
+            type: 'GET',
+            success: function (response) {
+                $('#modal-form-body').html(response);
+                $('#editProductForm').attr('action', '{% url "inventario:editar_producto" 0 %}'.replace('0', productId));
+            },
+            error: function (xhr) {
+                console.log(xhr.responseText);
+            }
+        });
+    });
+
+    $('#editProductForm').on('submit', function (event) {
+        event.preventDefault();
+        var form = $(this);
+        $.ajax({
+            url: form.attr('action'),
+            type: form.attr('method'),
+            data: new FormData(this),
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                if (response.success) {
+                    $('#editProductModal').modal('hide');
+                    location.reload();
+                } else {
+                    $('#modal-form-body').html(response);
+                }
+            },
+            error: function (xhr) {
+                console.log(xhr.responseText);
+            }
+        });
+    });
+});
+
+
 </script>

@@ -11,6 +11,8 @@ path('panel', views.Panel.as_view(), name='panel'),
 path('salir', views.Salir.as_view(), name='salir'),
 path('perfil/<str:modo>/<int:p>', views.Perfil.as_view(), name='perfil'),
 path('eliminar/<str:modo>/<int:p>', views.Eliminar.as_view(), name='eliminar'),
+path('filtrar-ingresos/', views.FiltrarIngresosView.as_view(), name='filtrar_ingresos'),
+
 
 path('listarProductos', views.ListarProductos.as_view(), name='listarProductos'),
 path('agregarProducto', views.AgregarProducto.as_view(), name='agregarProducto'),
@@ -93,6 +95,7 @@ path('api/total-con-impuestos/', views.TotalConImpuestosView.as_view(), name='to
 path('ventas/listar_ventas/', views.VentasView.as_view(), name='listar_ventas'),
 path('ventas/eliminar/', views.EliminarVentaView.as_view(), name='eliminar_venta'),
 path('ventas/imprimir_ticket/<int:venta_id>/', views.ImprimirTicketView.as_view(), name='imprimir_ticket'),
+path('ventas-avanzadas/', views.ventas_avanzadas, name='ventas_avanzadas'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
