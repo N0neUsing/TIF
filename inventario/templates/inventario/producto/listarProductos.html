@@ -2,48 +2,6 @@
 {% load my_filters %}
 
 {% block content %}
-<style>
-    .table th, .table td {
-        max-width: 150px; 
-    }
-
-    .table td, .table th {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .table td, .table th {
-        position: relative;
-        white-space: normal;
-        vertical-align: middle;
-        overflow: visible;
-    }
-
-    .expand-on-hover {
-        transition: transform 0.3s ease;
-        transform-origin: center;
-        position: absolute;
-        z-index: 50;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%) scale(1);
-    }
-
-    .table td:hover .expand-on-hover {
-        transform: translate(-50%, -50%) scale(3);
-        z-index: 100;
-    }
-
-    .btn-group {
-        white-space: nowrap;
-    }
-
-    .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.8rem;
-    }
-</style>
 
 <article class="content responsive-tables-page">
     <div class="title-block">
@@ -89,7 +47,7 @@
                                     <tbody>
                                         {% for producto in tabla %}
                                         <tr>
-                                            <td>
+                                            <td data-label="Acciones">
                                                 <div class="btn-group">
                                                     <button class="btn add-to-cart mr-1" data-product-id="{{ producto.id }}">
                                                     <i class="fa fa-shopping-cart"></i></button>
@@ -104,16 +62,16 @@
                                                     </button>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Imagen del Producto">
                                                 {% if producto.imagen_producto %}
                                                 <img src="{{ producto.imagen_producto.url }}" loading="lazy" alt="{{ producto.descripcion }}" class="expand-on-hover" height="50">
                                                 {% else %}
                                                 Sin Imagen
                                                 {% endif %}
                                             </td>
-                                            <td>{{ producto.descripcion }}</td>
+                                            <td data-label="Nombre">{{ producto.descripcion }}</td>
                                             <!-- Columna de precios -->
-                                            <td>
+                                            <td data-label="Precio">
                                                 {% if producto.precio %}
                                                     {% if producto.tipo_id == 3 %}
                                                         ${{ producto.precio }} / kg (${{ producto.precio|multiply:0.001|floatformat:2 }} / g)
@@ -127,7 +85,7 @@
                                                 {% endif %}
                                             </td>
                                             <!-- Columna de cantidad -->
-                                            <td>
+                                            <td data-label="Cantidad">
                                                 {% if producto.disponible == 0 %}
                                                     <span style="color: red;">Agotado</span>
                                                 {% else %}
@@ -140,12 +98,12 @@
                                                     {% endif %}
                                                 {% endif %}
                                             </td>
-                                            <td>{{ producto.fecha_introduccion|date:"d/m/Y" }}</td>
-                                            <td {% if producto.fecha_vencimiento|is_expired %}style="color: red;"{% elif producto.fecha_vencimiento|is_expiring_soon %}style="color: orange;"{% endif %}>
+                                            <td data-label="Fecha Introducción">{{ producto.fecha_introduccion|date:"d/m/Y" }}</td>
+                                            <td data-label="Fecha Vencimiento" {% if producto.fecha_vencimiento|is_expired %}style="color: red;"{% elif producto.fecha_vencimiento|is_expiring_soon %}style="color: orange;"{% endif %}>
                                               {{ producto.fecha_vencimiento|date:"d/m/Y" }}
                                             </td>
-                                            <td>{{ producto.categoria.nombre }}</td>
-                                            <td>{{ producto.codigo_barra }}</td>
+                                            <td data-label="Categoría">{{ producto.categoria.nombre }}</td>
+                                            <td data-label="Código de Barra">{{ producto.codigo_barra }}</td>
                                         </tr>
                                         {% empty %}
                                         <tr>

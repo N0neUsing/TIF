@@ -70,11 +70,12 @@
 
         .table-responsive {
             overflow-x: auto;
+            overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
 
         .table {
-            table-layout: fixed;
+            table-layout: auto;
             width: 100%;
         }
 
@@ -111,36 +112,7 @@
         }
 
         .table td, .table th {
-            white-space: normal;
             vertical-align: middle;
-        }
-
-        .expand-on-hover {
-            transition: transform 0.3s ease;
-            transform-origin: center;
-            position: absolute;
-            z-index: 50;
-        }
-
-        .table {
-            table-layout: fixed;
-            width: 100%;
-        }
-
-        .table td, .table th {
-            position: relative;
-            white-space: normal;
-            vertical-align: middle;
-            overflow: visible;
-        }
-
-        .btn-group {
-            white-space: nowrap;
-        }
-
-        .btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.8rem;
         }
 
         .expand-on-hover {
@@ -225,6 +197,7 @@
 
         .table-responsive {
             overflow-x: auto;
+            overflow-y: auto;
             display: block;
         }
 
@@ -264,8 +237,9 @@
         body {
             padding-top: 70px; /* Ajusta este valor según la altura de tu header */
         }
+
         .modal {
-        z-index: 1050; /* Asegúrate de que todos los modales tengan un z-index adecuado */
+            z-index: 1050; /* Asegúrate de que todos los modales tengan un z-index adecuado */
         }
 
         #modalScanner {
