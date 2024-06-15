@@ -851,60 +851,6 @@ class ExportarClientes(LoginRequiredMixin, View):
 #Fin de vista-------------------------------------------------------------------------#
 
 
-
-
-#Muestra el mismo formulario del cliente pero con los datos a editar----------------------#
-class EditarCliente(LoginRequiredMixin, View):
-    login_url = '/inventario/login'
-    redirect_field_name = None
-
-    def post(self,request,p):
-        # Crea una instancia del formulario y la llena con los datos:
-        cliente = Cliente.objects.get(id=p)
-        form = ClienteFormulario(request.POST, instance=cliente)
-        # Revisa si es valido:
-    
-        if form.is_valid():           
-            # Procesa y asigna los datos con form.cleaned_data como se requiere
-            cedula = form.cleaned_data['cedula']
-            nombre = form.cleaned_data['nombre']
-            apellido = form.cleaned_data['apellido']
-            direccion = form.cleaned_data['direccion']
-            nacimiento = form.cleaned_data['nacimiento']
-            telefono = form.cleaned_data['telefono']
-            correo = form.cleaned_data['correo']
-            telefono2 = form.cleaned_data['telefono2']
-            correo2 = form.cleaned_data['correo2']
-
-            cliente.cedula = cedula
-            cliente.nombre = nombre
-            cliente.apellido = apellido
-            cliente.direccion = direccion
-            cliente.nacimiento = nacimiento
-            cliente.telefono = telefono
-            cliente.correo = correo
-            cliente.telefono2 = telefono2
-            cliente.correo2 = correo2
-            cliente.save()
-            form = ClienteFormulario(instance=cliente)
-
-            messages.success(request, 'Actualizado exitosamente el cliente de ID %s.' % p)
-            request.session['clienteProcesado'] = 'editado'            
-            return HttpResponseRedirect("/inventario/editarCliente/%s" % cliente.id)
-        else:
-            #De lo contrario lanzara el mismo formulario
-            return render(request, 'inventario/cliente/agregarCliente.html', {'form': form})
-
-    def get(self, request,p): 
-        cliente = Cliente.objects.get(id=p)
-        form = ClienteFormulario(instance=cliente)
-        #Envia al usuario el formulario para que lo llene
-        contexto = {'form':form , 'modo':request.session.get('clienteProcesado'),'editar':True} 
-        contexto = complementarContexto(contexto,request.user)     
-        return render(request, 'inventario/cliente/agregarCliente.html', contexto)  
-#Fin de vista--------------------------------------------------------------------------------# 
-
-
 #Emite la primera parte de la factura------------------------------#
 class EmitirFactura(LoginRequiredMixin, View):
     login_url = '/inventario/login'
@@ -3163,7 +3109,7 @@ class PagarCuentaClienteView(View):
 
         if not productos_cliente.exists():
             messages.error(request, "No hay productos registrados en la cuenta de este cliente.")
-            return redirect('ruta_a_listar_clientes')
+            return redirect('inventario:listar_clientes')
 
         pdf_buffer = BytesIO()
         page_width = 164  # Ancho en puntos para 58 mm
@@ -3222,6 +3168,39 @@ class PagarCuentaClienteView(View):
         return y  # Retorna la nueva posición de 'y' para continuar dibujando más abajo
 
 
+class EditarClienteView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        cliente = get_object_or_404(Cliente, pk=pk)
+        form = ClienteFormulario(instance=cliente)
+        return render(request, 'inventario/editar_cliente.html', {'form': form})
+
+    def post(self, request, pk):
+        cliente = get_object_or_404(Cliente, pk=pk)
+        form = ClienteFormulario(request.POST, instance=cliente)
+        if form.is_valid():
+            form.save()
+            return redirect('inventario:listarClientes')  # Cambiado a listarClientes
+        else:
+            return render(request, 'inventario/editar_cliente.html', {'form': form})
+
+
+class EliminarClienteView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        cliente = get_object_or_404(Cliente, pk=pk)
+        cliente.delete()
+        return redirect('inventario:listarClientes')
+
+class ObtenerClienteView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        cliente = get_object_or_404(Cliente, pk=pk)
+        data = {
+            'nombre': cliente.nombre,
+            'apellido': cliente.apellido,
+            'telefono': cliente.telefono,
+            'direccion': cliente.direccion,
+            'correo': cliente.correo
+        }
+        return JsonResponse(data)
 
 
 

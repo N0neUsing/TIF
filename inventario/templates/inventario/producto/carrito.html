@@ -46,6 +46,31 @@
         padding: 0.25rem 0.5rem;
         font-size: 0.8rem;
     }
+
+    @media (max-width: 768px) {
+        .modal-dialog {
+            max-width: 100%;
+            margin: 0;
+        }
+
+        .modal-content {
+            height: 100%;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+        }
+
+        .search-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .search-container input, .search-container button {
+            width: 100%;
+        }
+    }
 </style>
 
 <article class="content">
@@ -138,10 +163,10 @@
                                 </select>
                                 <button type="submit" class="btn btn-primary" id="finalize-purchase-button">Finalizar Compra</button>
                             </form>
-                                                                                            <!-- Botón para agregar a cliente -->
-                                <button id="add-to-client-button" class="btn btn-warning" data-toggle="modal" data-target="#clientModal">
-                                    Agregar a cliente
-                                </button>
+                            <!-- Botón para agregar a cliente -->
+                            <button id="add-to-client-button" class="btn btn-warning" data-toggle="modal" data-target="#clientModal">
+                                Agregar a cliente
+                            </button>
                         </div>
                     </div>
                 </div>

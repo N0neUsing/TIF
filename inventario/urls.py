@@ -48,11 +48,15 @@ path('listarClientes', views.ListarClientes.as_view(), name='listarClientes'),
 path('agregarCliente', views.AgregarCliente.as_view(), name='agregarCliente'),
 path('importarClientes', views.ImportarClientes.as_view(), name='importarClientes'),
 path('exportarClientes', views.ExportarClientes.as_view(), name='exportarClientes'),
-path('editarCliente/<int:p>', views.EditarCliente.as_view(), name='editarCliente'),
 path('api/clientes/', views.ApiClientes.as_view(), name='api_clientes'),
 path('api/cliente/<int:client_id>/productos/', views.ClientProductsView.as_view(), name='client-products'),
 path('asignar-carrito-a-cliente/', views.AssignCartToClientView.as_view(), name='assign-cart-to-client'),
 path('pagar-cuenta-cliente/<int:cliente_id>/', views.PagarCuentaClienteView.as_view(), name='pagar-cuenta-cliente'),
+path('eliminarCliente/<int:pk>/', views.EliminarClienteView.as_view(), name='eliminarCliente'),
+path('editarCliente/<int:pk>/', views.EditarClienteView.as_view(), name='editarCliente'),
+path('api/cliente/<int:pk>/', views.ObtenerClienteView.as_view(), name='obtener_cliente'),
+
+
 
 
 path('emitirFactura', views.EmitirFactura.as_view(), name='emitirFactura'),

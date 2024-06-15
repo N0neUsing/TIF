@@ -83,6 +83,7 @@
 
     canvas {
         display: block; /* Asegúrate de que los canvas se muestren */
+        height: 200px; /* Ajusta la altura según sea necesario */
     }
 </style>
 
@@ -99,6 +100,29 @@
         const meses = JSON.parse('{{ meses|escapejs }}');
         const totalesMeses = JSON.parse('{{ totales_meses|escapejs }}');
 
+        function getDataRange(data) {
+            let minIndex = 0;
+            let maxIndex = data.length - 1;
+            for (let i = 0; i < data.length; i++) {
+                if (data[i] > 0) {
+                    minIndex = i;
+                    break;
+                }
+            }
+            for (let i = data.length - 1; i >= 0; i--) {
+                if (data[i] > 0) {
+                    maxIndex = i;
+                    break;
+                }
+            }
+            return { minIndex, maxIndex };
+        }
+
+        const ventasDiariasRange = getDataRange(totalesHoras);
+        const ventasSemanalesRange = getDataRange(totalesDiasSemana);
+        const ventasMensualesRange = getDataRange(totalesDiasMes);
+        const ventasAnualesRange = getDataRange(totalesMeses);
+
         const ventasDiariasCtx = document.getElementById('ventasDiariasChart').getContext('2d');
         const ventasDiariasChart = new Chart(ventasDiariasCtx, {
             type: 'line',
@@ -114,6 +138,10 @@
             },
             options: {
                 scales: {
+                    x: {
+                        min: ventasDiariasRange.minIndex,
+                        max: ventasDiariasRange.maxIndex
+                    },
                     y: {
                         beginAtZero: true
                     }
@@ -136,6 +164,10 @@
             },
             options: {
                 scales: {
+                    x: {
+                        min: ventasSemanalesRange.minIndex,
+                        max: ventasSemanalesRange.maxIndex
+                    },
                     y: {
                         beginAtZero: true
                     }
@@ -158,6 +190,10 @@
             },
             options: {
                 scales: {
+                    x: {
+                        min: ventasMensualesRange.minIndex,
+                        max: ventasMensualesRange.maxIndex
+                    },
                     y: {
                         beginAtZero: true
                     }
@@ -180,6 +216,10 @@
             },
             options: {
                 scales: {
+                    x: {
+                        min: ventasAnualesRange.minIndex,
+                        max: ventasAnualesRange.maxIndex
+                    },
                     y: {
                         beginAtZero: true
                     }

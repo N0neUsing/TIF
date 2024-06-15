@@ -132,38 +132,11 @@ class ExportarClientesFormulario(forms.Form):
 
 
 class ClienteFormulario(forms.ModelForm):
-    tipoC =  [ ('1','V'),('2','E') ]
-
-    telefono2 = forms.CharField(
-        required = False,
-        label = 'Segundo numero telefonico',
-        widget = forms.TextInput(
-        attrs={'placeholder': 'Inserte el telefono alternativo del cliente',
-        'id':'telefono2','class':'form-control'}),
-        )
-
-    correo2 = forms.CharField(
-        required=False,
-        label = 'Segundo correo electronico',
-        widget = forms.TextInput(
-        attrs={'placeholder': 'Inserte el correo alternativo del cliente',
-        'id':'correo2','class':'form-control'}),
-        )
-
-    tipoCedula = forms.CharField(
-        label="Tipo de cedula",
-        max_length=2,
-        widget=forms.Select(choices=tipoC,attrs={'placeholder': 'Tipo de cedula',
-        'id':'tipoCedula','class':'form-control'}
-        )
-        )
-
-
-class ClienteFormulario(forms.ModelForm):
     class Meta:
         model = Cliente
-        fields = ['nombre', 'apellido', 'telefono', 'direccion', 'correo']  # Ajustar según los campos deseados
+        fields = ['cedula', 'nombre', 'apellido', 'telefono', 'direccion', 'correo']  # Asegurarse de incluir 'cedula'
         labels = {
+            'cedula': 'Cédula',
             'nombre': 'Nombre',
             'apellido': 'Apellido',
             'telefono': 'Teléfono',
@@ -171,12 +144,14 @@ class ClienteFormulario(forms.ModelForm):
             'correo': 'Correo electrónico (Opcional)',
         }
         widgets = {
+            'cedula': forms.TextInput(attrs={'class': 'form-control'}),
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'apellido': forms.TextInput(attrs={'class': 'form-control'}),
             'telefono': forms.TextInput(attrs={'class': 'form-control'}),
             'direccion': forms.TextInput(attrs={'class': 'form-control'}),
             'correo': forms.EmailInput(attrs={'class': 'form-control'}),
         }
+
 
 
 
